@@ -20,64 +20,64 @@ function R2_DNN(x, obj, maxiterations)
     ## and returns x_opti, f(x_opti) and the number of iterations
 
     #Initializing the constants of the algorithm
-    η1=0.3
-    η2=0.7  
-    γ1=1/2
-    γ2=2.0
-    ϵ=10^-8
+    η1 = 0.3
+    η2 = 0.7
+    γ1 = 1 / 2
+    γ2 = 2.0
+    ϵ = 10^-8
 
     # Initializing the variables
     xk = copy(x)
-    ρk=0
-    ck=copy(xk)
-    fk=obj(xk)
-    gk=ForwardDiff.gradient(obj,xk)
-    σk = 2^round(log2(norm(gk)+1)) # The closest exact-computed power of 2 from gk
-    
+    ρk = 0
+    ck = copy(xk)
+    fk = obj(xk)
+    gk = ForwardDiff.gradient(obj, xk)
+    σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
+
 
     #T=obj(xk)+gk'*sk
     #m=T+norm(sk)^2*σk*1/2
 
-    iter=0
-    while !((norm(gk)<ϵ) | (iter>maxiterations)) 
-        sk=-gk/σk 
-        if norm(sk)<eps()
+    iter = 0
+    while !((norm(gk) < ϵ) | (iter > maxiterations))
+        sk = -gk / σk
+        if norm(sk) < eps()
             @warn "Stop because the step is lower than machine precision"
             break
         end
-        
-        ck=xk.+sk
-        ΔTk=-gk'*sk
-        fck=obj(ck)
-        ρk=(fk-fck)/ΔTk
+
+        ck = xk .+ sk
+        ΔTk = -gk' * sk
+        fck = obj(ck)
+        ρk = (fk - fck) / ΔTk
 
         # Recomputing if conditions on ρk not achieved
-        if ρk>=η2
-            σk=γ1*σk
-            
-        elseif ρk<η1
-            σk=σk*γ2
+        if ρk >= η2
+            σk = γ1 * σk
+
+        elseif ρk < η1
+            σk = σk * γ2
 
         end
 
         # Acceptance of the new candidate
         if ρk >= η1
-            xk=ck
-            fk=fck
-            gk=ForwardDiff.gradient(obj,xk)
+            xk = ck
+            fk = fck
+            gk = ForwardDiff.gradient(obj, xk)
         end
 
-        iter+=1
+        iter += 1
     end
-    return(xk, fk, iter)  
+    return (xk, fk, iter)
     #TODO  read about GenericExecutionStats
-#     return GenericExecutionStats(
-#     status,
-#     nlp,
-#     solution = x,
-#     objective = fx,
-#     dual_feas = ∇fx_norm,
-#     elapsed_time = elapsed_time,
-#     iter = iter,
-#   )
+    #     return GenericExecutionStats(
+    #     status,
+    #     nlp,
+    #     solution = x,
+    #     objective = fx,
+    #     dual_feas = ∇fx_norm,
+    #     elapsed_time = elapsed_time,
+    #     iter = iter,
+    #   )
 end

@@ -9,3 +9,4 @@ include("R2_DNN.jl")
 # 2 define a NLP (Problem ) aka #Ros(x) = (1-x[1])^2 + (x[2]-x[1]^2)^2 #---- If test needed on a basic function
 # 3 select a solver aka R2 and send the problem to it 
 # Optional turn on/off the table 
+
