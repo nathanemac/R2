@@ -1,9 +1,18 @@
 #Ros(x) = (1-x[1])^2 + (x[2]-x[1]^2)^2 #---- If test needed on a basic function
 
+# TODO  No comment before libraries 
 using LinearAlgebra
 using ForwardDiff
 
+#TODO
+" 
+    What it does
+    Input: (type)
+    Output: (type )
 
+"
+
+#TODO read this code https://github.com/farhadrclass/regularization-inexact/blob/StochasticRounding/src/adaptative_regularization.jl
 
 function R2_DNN(x, obj, maxiterations)
 
@@ -45,7 +54,7 @@ function R2_DNN(x, obj, maxiterations)
         # Recomputing if conditions on ρk not achieved
         if ρk>=η2
             σk=γ1*σk
-
+            
         elseif ρk<η1
             σk=σk*γ2
 
@@ -60,5 +69,15 @@ function R2_DNN(x, obj, maxiterations)
 
         iter+=1
     end
-    return(xk, fk, iter)
+    return(xk, fk, iter)  
+    #TODO  read about GenericExecutionStats
+#     return GenericExecutionStats(
+#     status,
+#     nlp,
+#     solution = x,
+#     objective = fx,
+#     dual_feas = ∇fx_norm,
+#     elapsed_time = elapsed_time,
+#     iter = iter,
+#   )
 end
