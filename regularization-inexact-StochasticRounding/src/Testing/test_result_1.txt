@@ -1,0 +1,377 @@
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: NZF1_autodiff
+σ_0_normest: 1002.9537646774633
+σ_0_Arpack: 1002.9561565005911
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: arglina
+σ_0_normest: 2.0000000000000013
+σ_0_Arpack: 2.0000000000000036
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: arglinb_autodiff
+σ_0_normest: 1.81808989e12
+σ_0_Arpack: 1.8180898900000002e12
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: arglinc_autodiff
+σ_0_normest: 1.7120766991020002e12
+σ_0_Arpack: 1.712076699102e12
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: arwhead_autodiff
+σ_0_normest: 1588.0304562642216
+σ_0_Arpack: 1588.0304562642223
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: bdqrtic_autodiff
+σ_0_normest: 48323.8052094996
+σ_0_Arpack: 48323.8052094996
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: broydn7d_autodiff
+σ_0_normest: 127.58084227920861
+σ_0_Arpack: 127.784919584677
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: brybnd_autodiff
+σ_0_normest: 1559.8693145181296
+σ_0_Arpack: 1559.9047238669075
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: chainwoo_autodiff
+σ_0_normest: 21530.254980645466
+σ_0_Arpack: 21530.255086013283
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: chnrosnb_autodiff
+σ_0_normest: 2030.967923399461
+σ_0_Arpack: 2033.502209936149
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: clplatea
+σ_0_normest: 7.786933229049254
+σ_0_Arpack: 7.786971336862661
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: clplateb
+σ_0_normest: 7.786932426050265
+σ_0_Arpack: 7.786971336862671
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: clplatec
+σ_0_normest: 393.01244275573225
+σ_0_Arpack: 394.0842273266175
+false
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: cosine_autodiff
+σ_0_normest: 6.399055409818437
+σ_0_Arpack: -6.442875399455982
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: cragglvy_autodiff
+σ_0_normest: 27481.837891902942
+σ_0_Arpack: 27481.837891902956
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: curly
+σ_0_normest: 4792.417215914178
+σ_0_Arpack: -4792.439937062626
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: curly10_autodiff
+σ_0_normest: 4792.428811809318
+σ_0_Arpack: -4792.439937062625
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: curly20_autodiff
+σ_0_normest: 17005.764861210562
+σ_0_Arpack: -17005.78443604664
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: curly30_autodiff
+σ_0_normest: 35455.30011052788
+σ_0_Arpack: -35455.30979180495
+false
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_efgh.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_efgh
+σ_0_normest: 47.24807866963723
+σ_0_Arpack: 47.347104941323
+false
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_efgh.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_efgh
+σ_0_normest: 77.04155953569618
+σ_0_Arpack: 77.04330143728029
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_efgh.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_efgh
+σ_0_normest: 152.84409231247687
+σ_0_Arpack: 152.84950991704196
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_efgh.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_efgh
+σ_0_normest: 316.62318336795903
+σ_0_Arpack: 316.62981638161864
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_ijkl.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_ijkl
+σ_0_normest: 46.97302702742977
+σ_0_Arpack: 47.04169434015407
+false
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_ijkl.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_ijkl
+σ_0_normest: 76.6514158998496
+σ_0_Arpack: 76.6620439001963
+false
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_ijkl.jl:12
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_ijkl
+σ_0_normest: 152.44990249325664
+σ_0_Arpack: 152.45427651152883
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_ijkl.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_ijkl
+σ_0_normest: 316.2154555718861
+σ_0_Arpack: 316.22288626152096
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_mnop.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_mnop
+σ_0_normest: 26.34468431776201
+σ_0_Arpack: 26.344961005054888
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_mnop.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_mnop
+σ_0_normest: 59.90578250906086
+σ_0_Arpack: 59.90598714784477
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_mnop.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_mnop
+σ_0_normest: 118.00273732333979
+σ_0_Arpack: 118.00314264848723
+true
+┌ Warning: dixmaan: number of variables adjusted to be a multiple of 3
+└ @ OptimizationProblems.ADNLPProblems C:\Users\Farhad\.julia\packages\OptimizationProblems\zRXax\src\ADNLPProblems\dixmaan_mnop.jl:12
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixmaan_mnop
+σ_0_normest: 243.49536906992967
+σ_0_Arpack: 243.49611409557244
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dixon3dq_autodiff
+σ_0_normest: 7.953916370917998
+σ_0_Arpack: 7.998006356504674
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dqdrtic_autodiff
+σ_0_normest: 401.98173116733875
+σ_0_Arpack: 402.0
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: dqrtic_autodiff
+σ_0_normest: 115246.6749548568
+σ_0_Arpack: 115248.00000000004
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: edensch_autodiff
+σ_0_normest: 57.99995189951595
+σ_0_Arpack: 58.00000000000001
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: eg2_autodiff
+σ_0_normest: 84.3862321077181
+σ_0_Arpack: 84.38623210771794
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: engval1_autodiff
+σ_0_normest: 191.94759028910497
+σ_0_Arpack: 191.9682082736625
+false
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: errinros_autodiff
+σ_0_normest: 120345.64284158316
+σ_0_Arpack: 120390.50472287541
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: extrosnb_autodiff
+σ_0_normest: 2599.3180426156828
+σ_0_Arpack: 2599.6042112433106
+false
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: fletcbv2_autodiff
+σ_0_normest: 3.9836695728061864
+σ_0_Arpack: 3.999117221864743
+false
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: fletcbv3_autodiff
+σ_0_normest: 0.00010187669935627107
+σ_0_Arpack: 0.00010203074035539015
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: fletchcr_autodiff
+σ_0_normest: 399.8568253809496
+σ_0_Arpack: 399.95065299266395
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: fminsrf2
+σ_0_normest: 370.74996494805043
+σ_0_Arpack: 370.750474491954
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: freuroth_autodiff
+σ_0_normest: 3338.224437992871
+σ_0_Arpack: 3338.224437992873
+true
+SPOT:normest:notconverge', '#s#d#s#gNORMEST did not converge for ', maxiter, ' iterations with tolerance 1.0e-6
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: genhumps_autodiff
+σ_0_normest: 1520.1925707831829
+σ_0_Arpack: -1525.1062174770502
+false
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: genrose_autodiff
+σ_0_normest: 1623.22892257344
+σ_0_Arpack: 1623.2337748163372
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: genrose_nash_autodiff
+σ_0_normest: 1623.2474740403688 
+σ_0_Arpack: 1623.249188224224
+true
+---------------------------------------
+
+Testing the σ_0 calculated using normest vs Arpack
+The Problem is: indef_autodiff
+σ_0_normest: 85.07365769206208
+σ_0_Arpack: -85.07365769206194
+false

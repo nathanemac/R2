@@ -1,0 +1,826 @@
+\documentclass{article}[12pt]
+\usepackage[english]{babel}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{mathtools}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\usepackage{algorithm,algpseudocode,algcompatible}
+\usepackage{xcolor}
+
+
+\newtheorem{lemma}[]{Lemma}
+\newtheorem{theorem}[]{Theorem}
+\newtheorem{assumption}[]{\textbf{AS.}}
+
+\author{D. Monnet, F. Rahbarnia}
+\input{notations.tex}
+\title{Report: Multi-Precision Quadratic Regularization Algorithm}
+
+\begin{document}
+	\maketitle
+	
+	\section{Problem Statement and Background}
+	
+	We consider the problem
+	\begin{equation*}
+		\minu{x\in \set{R}^n} \, f(x)
+	\end{equation*}
+	with $f$ a continuously differentiable function. We suppose that the computations are run in finite precision. As a consequence, it is not possible to evaluate $f$ nor the gradient $\nabla f$ exactly, but only their finite precision couterparts denoted $\ffp$ and $g$. We further suppose that models for the errors $\ef$ and $\eg$ are provided as functions of $x$,
+	\begin{equation}
+		\label{eq:fgerr}
+		||f(x)-\ffp(x)||\leq \ef(x), \quad ||\nabla f(x)-g(x)||\leq \eg(x)||g(x)||.
+	\end{equation}
+
+	The following assumption is made.
+	
+	\begin{assumption}
+	\label{as:grad_lipschitz}	
+	The gradient of $f$ is Lipschitz continuous.
+	\begin{equation}
+		\label{as:lips}
+		\exists L>0,\, \forall x,y \in \set{R}^n,\, ||\nabla f(x) - \nabla f(y)|| \leq L||x-y||.
+	\end{equation}
+	\end{assumption} 
+	From assubmption AS.1, one derives that $f$ is continuously differentiable
+
+	The regularized quadratic method, detailed in Algorithm~\ref{alg:qrfp}, is based on a first order model of the objective function. Let $T$ be the Taylor expansion of $f$ truncated at order 1,
+	\begin{equation}
+		T(x,s) = f(x) + \nabla f(x)^Ts.
+	\end{equation}
+    In practice $f$ and $\nabla f(x)$ might be costly to evaluate. Instead of using $T$ directly, we use the approximated Taylor series defined with an inexact gradient $g$ and the inexact evaluation of ,
+    \begin{equation}
+    	\approxT(x,s) = f(x) + g(x)^Ts.
+    \end{equation} 
+	The regularized approximated Taylor series is used as the local model in the algorithm, defined as,
+	\begin{equation}
+		m(x,s) = \approxT(x,s) + \dfrac{1}{2}\sigma||s||^2,
+	\end{equation}
+    with $\sigma$ the regularization parameter that controls the step size. The step is chosen as the minimizer of the local model given by,
+	\begin{equation}
+		s \in \argminu{s\in\set{R}^n} \,  m(x,s) = \left\{-\dfrac{g(x)}{\sigma}\right\}.
+	\end{equation}
+	
+
+	\section{Finite Precision Computations}
+	Finite precision computations induce not only inexact evaluations of the objective function and the gradient, but also other errors that must be taken into account. In this section, several sources of errors due to finite precision computation are detailed. We also introduce some tools and results necessary to proove the convergence of Algorithm~\ref{alg:qrfp}. The following assumption is made in the rest of the paper.
+	\begin{assumption}
+		Finite precision computations comply with IEEE 754 norm, and underflow and overflow do not occur during algorithm execution. 
+	\end{assumption}
+	We focus on floating point numbers of radix 2. The \emph{machine precision} is 
+	\begin{equation*}
+		u = 2^{1-p}/2 = 2^{-p}
+	\end{equation*}
+	with $p$ the precision of the considered floating point representation (\emph{e.g.}16, 32, 64, ... bits). The IEEE norm requires that the standard operations produce a result with a rounding error such that 
+	\begin{equation}
+		\label{eq:rounding_error}
+		\fl{x\square y} = (x\square y)(1+\delta), \quad |\delta|\leq u,
+	\end{equation}
+	with $x$ and $y$ two floating point numbers, $\square$ one of the operators $+$, $-$, $*$, $/$, and $\fl{.}$ denotes the finite precision computation. In the following, $\delta$ represents a rounding error bounded as in \eqref{eq:rounding_error}.
+	
+	The notations used to study the rounding errors propagation are the one introduced in \cite{higham2002accuracy},
+	\begin{equation}
+		\prod_{i}^{n} (1+\delta_i)= (1+\theta_n),\quad |\theta_n|\leq \gamma_n.
+	\end{equation}
+	Several formulas exist for $\gamma_n$, recaped in Table~\ref{tab:gamma_formula}. Note that these bounds can be very pessimistic because they account for the worst-case propagation of errors. 
+	\red{TODO @Farhad:  table update}
+	\begin{center}
+		\begin{table}[H]
+			\label{tab:gamma_formula}
+			\caption{Formula for $\gamma_n$}
+			\begin{tabular}{|c|c|c|c|}
+				\hline
+				ref & & & \\ \hline
+				$\gamma_n$ & $\dfrac{n}{1-nu}$ & $\dfrac{n}{1-nu/2}$ & $nu$ \\ \hline
+			\end{tabular}
+		\end{table}
+	\end{center}
+	
+	In the following, we simplify the notations as follows:
+	\begin{itemize}
+		\item $\delta$ is any rounding error, an index is added if there is a need to keep track of a particular rounding error,
+		\item $\theta_n$ models any rounding error propagation. The notation $\vartheta$ is used is there is a need to keep track of a particular $\theta$,
+		\item given a vector $x\in \set{R}^n$, we denote abusively,
+		\begin{equation*}
+			x(1+\delta) = (x_1(1+\delta_1),\dots,x_n(1+\delta_n)),\quad
+			x\delta = (x_1\delta_1,\dots,x_n\delta_n)
+		\end{equation*} if there is no need to keep track of the rounding errors $\delta_i$. The same goes for $\theta_n$.
+	\end{itemize}
+	
+	
+	\subsection{Inexact Step and Pseudo-Taylor Series}
+	
+	When computing the step $s_k$ at iteration $k$ with finite precision arithmetic, it happens that the descent direction is not $g_k = g(x_k)$ but $\gd_k$ that includes rounding error. Denoting $\skfp{k}$ the finite precision step, one has,
+	\begin{equation}
+		\label{eq:sk_exp}
+		\skfp{k} = \fl{-\dfrac{g_k}{\sigma_k}} = -\dfrac{\gd_k}{\sigma_k}
+	\end{equation}
+	with $\gd_k = g_k\odot\left((1+\delta_1),\dots,(1+\delta_n)\right)^T$, where $\odot$ denotes the element-wise multiplication operator.
+	
+	\begin{lemma}
+		\label{lem:g_actual_diff}
+		The norm of the difference between $g_k$ and $\gd_k$ is bounded as,
+		\begin{equation}
+			\label{eq:g_gd_norm_diff}
+			||g_k-\gd_k|| \leq u||g_k||,
+		\end{equation}
+	and $||\gd_k|| \geq ||g_k||(1-u)$
+	\end{lemma} 
+
+	\begin{proof}
+		Denote $g_k = (g_k^1,\dots,g_k^n)^T$. One has,
+		\begin{equation}
+		\begin{array}{ll}
+			||g_k-\gd_k||^2 & =  \displaystyle  \sum_{i=1}^n (g_k^i-\gd_k^i)^2 \\
+			& = \displaystyle \sum_{i=1}^n (g_k^i-g_k^i(1+\delta_i))^2\\
+			&  =  \displaystyle \sum_{i=1}^n \delta_i^2  (g_k^i)^2 \\
+			& \leq \displaystyle \sum_{i=1}^n u^2 (g_k^i)^2\\
+			& = u^2||g||^2.\\
+		\end{array}
+	\end{equation}
+	This proves the first inequality. Following a similar reasoning,
+	\begin{equation}
+		\begin{array}{ll}
+			||\gd||^2 & =   \displaystyle  \sum_{i=1}^n (g_k^i(1+\delta_i))^2 \\
+			& \geq (1-u)^2||g||^2,\\
+		\end{array}
+	\end{equation}
+	which proves the second inequality.
+	\end{proof}
+	
+%	\blue{
+%	Given that 
+%	\begin{align}
+%	    \label{eq:g_def}
+%		& g_k = fl(\nabla f(x)) \\
+%		& |\nabla f(x) - g_k | \leq \delta_1 |\nabla f(x)|
+%    \end{align}
+%	Same can be shown for $\gd_k$  since it has the error of the division inside of it, such that:
+%	\begin{align}
+%		& \gd_k = fl(g_k)\\ %NOT SURE ABOUT THIS
+%		& |\nabla f(x) - \gd_k | \leq \delta_2 |\nabla f(x)|
+%	\end{align}
+%	Then we can expand the \ref{eq:g_gd_norm_diff} such that:
+%	\begin{equation}
+% 	   	\begin{array}{ll}
+% 	   		||g_k-\gd_k|| &\leq u||g_k||\\
+%  	  	& \leq ||(1+\delta_1) \nabla f(x) - (1+\delta_2)\nabla f(x)||\\
+%  	  	& \leq || 2(\max(\delta_1,\delta_2) \nabla f(x)||\\
+%   		& \leq  2 u ||\nabla f(x)||
+% 	   	\end{array}
+%	\end{equation}}
+	
+	
+	We define the \emph{pseudo-Taylor series} as,
+	\begin{equation}
+		\pseudoT(x_k,s) = \ffp(x_k) + \gd^Ts.
+	\end{equation} The pseudo-Taylor series can be viewed as the approximated Taylor series $\approxT$ but slightly modified, such that the rounding error is taken into account. Indeed, $\pseudoT(x_k,s)$ is expressed with $\gd_k$ which is the descent direction of the inexact step $\skfp{k}$. As such, considering the pseudo-Taylor series $\pseudoT$ instead of the $\approxT$ makes it easier to prove the convergence of the algorithm when considering rounding errors due to finite precision computations (see Section~\ref{sec:proof}).
+
+    The main difficulty is that $\gd$ is unknown, and as a consequence $\pseudoT$ is also unknown. This is an issue for relying the pseudo-Taylor series since the algorithm requires the decrease to be computed. However, computing the decrease of the approximated Taylor series $\approxT$ with finite precision arithmetic provide the decrease of the pseudo-Taylor series with a relative error. This is what is stated by Lemma~\ref{lem:pseudo_reduction}. Note that the notation $\vartheta_{n+2}$ is used because it is necessary to keep track of this particular propagation error model in the following.
+    \begin{lemma}
+    	\label{lem:pseudo_reduction}
+    	Let $\tsdifffp_k$ be the finite precision computation of $\approxT(x_k,0) - \approxT(x_k,\skfp{k})$. One has,
+    	\begin{equation}
+    		\tsdifffp_k = \left(\pseudoT(x,0) - \pseudoT(x,\skfp{k})\right) (1+\vartheta_{n+2}) = -\gd^T \skfp{k} (1+\vartheta_{n+2}).
+    	\end{equation}
+    \end{lemma}
+	\begin{proof}
+		\begin{equation}
+			\begin{array}{ll}
+				\tsdifffp_k & = \fl{-g_k^T\skfp{k}}\\
+				& = -\fl{g_k^T\dfrac{\gd}{\sigma_k}}\\
+				& = \displaystyle - \fl{\sum_{i=1}^{n} \dfrac{(\gd_k^i)^2(1+\delta)}{\sigma_k(1+\delta_i)}}\\
+				& = -\sum_{i=1}^{n} \dfrac{(\gd_k^i)^2(1+\delta)}{\sigma_k(1+\delta_i)}(1+\theta_n)\\
+				& = -\dfrac{(\gd_k^i)^2}{\sigma_k}(1+\vartheta_{n+2})\\
+				& = -\gd^T \skfp{k} (1+\vartheta_{n+2})
+			\end{array}
+		\end{equation}
+	\end{proof}
+
+	\subsection{Actual Candidate and Descent Direction}
+		At each iteration, the candidate $c_k$ is computed as $c_k = x_k + \skfp{k}$. With finite precision computation, one has 
+		\begin{equation}
+			\hat{c}_k = \fl{x_k+\skfp{k}} = (x_k+\skfp{k})(1+\delta).
+		\end{equation}
+		As a consequence, the computed step $\skfp{k}$ is  not the actual step. The actual step is $  x_k\delta + \skfp{k}(1+\delta)$, and therefore the actual descent direction is not $\gd$ but $\sigma_k(\hat{c}_k - x_k) = \tilde{g}(1+\delta) +\sigma_k x_k\delta$. Since we have no relationship between $g_k$ and $x_k$, it is not possible to find a relationship between the actual descent direction and $g_k$ as we did in the previous subsection between $g_k$ and $\gd_k$.
+		
+		In order to deal with this inexact cadidate computation, we introduce $\phi_k$ an upper bound on the ratio $||x_k||/||s_k||$. If $\phi_k$ is great, then $ x \delta$ is not neglectable compare to $\skfp{k}$ and the difference between $g_k$ and the actual descent direction can be huge. If $\phi_k$ is too big, then the convergence of the finite precision quadratic regularization algorithm cannot be ensured. This is included in the termination condition in Step 2 in Algorithm~\ref{alg:qrfp} since $\mu_k$ increases with $\phi_k$.
+	
+	\subsection{Finite Precision Norm Computation}
+		In Algorithm~\ref{alg:qrfp}, it is necessary to compute $||g_k||$,  $||s_k||$ and $||x_k||$. Due to rounding errors, norm computations are inexact. Lemma~\ref{lem:norm_inexact} states an upper bound on the error for norm computation.
+		\begin{lemma}
+			\label{lem:norm_inexact}
+			Let $x\in\set{R}^n$ be an n-dimentional floating point vector. The error on norm computation of $x$ in finite precision can be modeled
+			\begin{equation}
+				\fl{||x||} = ||x||(1+\theta_{\ceil{\frac{n}{2}}+r}),
+			\end{equation}
+		with $\fl{\sqrt{y}} = \sqrt{y}(1+\theta_r)$, $y$ being a floating point number, and $\ceil{.}$ the ceiling function.
+		\end{lemma}
+		\begin{proof}
+			The error on dot product can be modeled as~\cite{higham2002accuracy},
+			\begin{equation}
+				\fl{|x|.|x|} = |x|.|x|(1+\theta_n) = ||x||^2(1+\theta_n).
+			\end{equation}
+			As a consequence,
+			\begin{equation}
+				\begin{array}{ll}
+					\fl{||x||} & = \fl{\sqrt{||x||^2}}\\
+					 & = ||x||\sqrt{(1+\theta_n)}(1+\theta_r)\\
+					 & = ||x||(1+\theta_{\ceil{\frac{n}{2}}+r}).
+				\end{array}
+			\end{equation}
+		\end{proof}
+		
+	\section{Finite Precision Algorithm}
+	The algorithm detailed in this section implements strategies to deal with inexact evaluation of $f$, its gradient and the approximated Taylor serie. In order to make the equations easier to read, we define
+	\begin{equation}
+		\alpha_n = \dfrac{1}{1-\gamma_{n+2}}.
+	\end{equation} 
+	\begin{assumption}
+		The machine precision is such that $1-\gamma_{n+2}>0$.
+	\end{assumption}
+	
+	Algorithm~\ref{alg:qrfp} is the adaptation of the classical quadratic regularization algorithm that takes the objective function and gradient evaluation errors into account. It takes as input the usual parameters $\eta_1$, $\eta_2$, that decides wether or not an iteration is successful and $\gamma_1$, $\gamma_2$, $\gamma_3$ that controls how the regularization parameter $\sigma_k$ is updated. It also takes as input the parameter $\eta_0$ which controls the objective function evaluation precision to ensure the convergence of the algorithm (Step 3). Condition~\eqref{eq:param_cond} initialized the parameters such that the convergence is ensured. Algorithm~\ref{alg:qrfp} stops either when one of the three stopping criteria~\eqref{eq:stop_crit} is reached:
+	\begin{itemize}
+		\item Step 1: the termination condition ensures that ensures $||\nabla f(x_k)||\leq \epsilon$ by taking into account the gradient evaluation error $\eg(x_k)$ and the error of norm computation in finite precision modeled in Lemma~\ref{lem:norm_inexact}.
+		\item Step 2: the value $\mu_k$ has to be lower than $\kappa_\mu$ given in input. $\mu_k$ can be viewed as the worst-case relative error on the exact gradient $\nabla f(x_k)$ that takes into account $\eg(x_k)$ and the errrors due to inexact step and candidate computations. Note that if we suppose that $s_k$ and $c_k$ are computed exactly, \emph{i.e.} $u = 0$, one has $\mu_k = \omega(x_k)$.
+		\item Step 3: the termination condition ensures that the objective function evaluation error remains small enough to ensure the convergence.
+	\end{itemize}
+	Termination conditions at Steps 2 and 3 are necessary to guaratee the convergence (see Section~\ref{sec:proof} for the proof of convergence).
+	At Step 2, $\phi_k$ is a guaranteed upper bound on the ratio $||x_k||/||s_k||$ by taking into account the norm computaion errors as given in Lemma~\ref{lem:norm_inexact}. In the following, we suppose that $\mu_k$, $\phi_k$ and $\rho_k$ are computed exactly, that is why the word ``define" instead of ``compute" is used in Algorithm~\ref{alg:qrfp}. 
+	\begin{assumption}
+		$\alpha_n$, $\gamma_n$, $\phi_k$, $\mu_k$ and $\rho_k$ are computed exactly.
+	\end{assumption}
+	These quantities involve few computations and make this assumption reasonable.
+	
+	\red{TODO: provide a better analysis for $\rho_k$. What happen if $f_k \approx f_k^+ >> 1$?}
+
+	
+	\begin{algorithm}
+		\caption{Finite precision quadratic regularization algorithm}
+		\label{alg:qrfp}
+		
+		\begin{algorithmic}
+			\State \textbf{Step 0: Initialization:} Initial point $x_0$, initial value $\sigma_0$, minimal value $\sigma_{min}$ for $\sigma$, final gradient accuracy $\epsilon$, formula for $\gamma_n$. Constant values $\eta_0$, $\eta_1$, $\eta_2$, $\gamma_1$, $\gamma_2$, $\gamma_3$, $\wgaugbound$ such that,
+			\begin{equation}
+				\label{eq:param_cond}
+				0<\eta_1\leq \eta_2<1\quad 0<\gamma_1<1<  \gamma_2 \leq \gamma_3, \quad \eta_0<\frac{1}{2}\eta_1 \quad \eta_0+\dfrac{\wgaugbound}{2} \leq \frac{1}{2}(1-\eta_2)
+			\end{equation}
+			Set $k=0$, compute $f_0 = \ffp(x_0)$.
+			\State \textbf{Step 1: Check for termination:} If $k = 0$ or $x_k \neq x_{k-1}$, compute $g_k = g(x_k)$. Compute $\widehat{||g_k||} = fl(||g_k||)$. Terminate if \begin{equation}
+				\label{eq:stop_crit}
+				\widehat{||g_k||} \leq \dfrac{1}{1+\gamma_{\ceil{\frac{n}{2}}+r}}\dfrac{\epsilon}{(1+\eg(x_k))}
+			\end{equation}
+%			\textbf{If exact sum $x_k+\skfp{k}$: }Terminate if $\dfrac{u}{1-u}+\alpha_n\dfrac{\eg(x_k)}{1-u} > \wgaugbound$\\
+%			\red{With condition in~\cite{birgin2017worst}, terminate if $\dfrac{\eg(x_k)+u}{1-u}>1/\sigma_k$}.
+			\State \textbf{Step 2: Step calculation: } Compute $\skfp{k} = \fl{g_k/\sigma_k}$.\\
+%			\textbf{If inexact sum $(x_k+\skfp{k})(1+\delta)$}:\\
+			Compute $\hat{\phi}_k = \fl{\dfrac{||x_k||}{||s_k||}}$. 
+			Define $\phi_k = \hat{\phi}_k\dfrac{1+\gamma_{\ceil{\frac{n}{2}}+r}}{1-\gamma_{\ceil{\frac{n}{2}}+r}}$\\
+			Define $\mu_k = \dfrac{\alpha_n \eg(x_k)(u+\phi_k u+1) + u(\phi_k\alpha_n+\alpha_n+1) + \frac{\gamma_{n+2}}{1+\gamma_{n+2}}}{1-u}$.\\
+			Terminate if $\mu_k > \wgaugbound$ \\
+			Compute $\hat{c}_k = \fl{x_k+\skfp{k}}$.\\
+			Compute approximated taylor series decrease $\tsdifffp_k = \fl{g_k^T\skfp{k}}$.\\
+			
+			
+			
+			
+			\State \textbf{Step 3: Evaluate the objective function: }
+			Compute $f_k^+ = \ffp(\hat{c}_k)$.
+			Terminate if $\ef(x_k)> \eta_0 \tsdifffp_k$ or $\ef(\hat{c}_k)> \eta_0 \tsdifffp_k$\\
+			
+			\State \textbf{Step 4: Acceptance of the trial point: } Define the ratio
+			\begin{equation}
+				\rho_k = \dfrac{f_k - f_k^+}{\tsdifffp_k}
+			\end{equation}
+			If $\rho_k \geq \eta_1$, then $x_{k+1} = x_k+\skfp{k}$, $f_{k+1} = f_k^+$.	Otherwise set $x_{k+1} = x_k$, $f_{k+1} = f_k$.
+			
+			\State \textbf{Step 5: Regularization  parameter update: }
+			\begin{equation}
+				\label{eq:sigma_update}
+				\sigma_{k+1} \in \left\{
+				\begin{array}{ll}
+					[\max(\sigma_{min},\gamma_1\sigma_k),\sigma_k] & \text{if } \rho_k \geq \eta_2\\
+					
+					[\sigma_k,\gamma_2\sigma_k] & \text{if }\rho_k \in [\eta_1,\eta_2) \\
+					
+					[\gamma_2\sigma_k,\gamma_3\sigma_k] & \text{if } \rho_k \in < \eta_1 \\
+				\end{array}
+				\right.
+			\end{equation}
+			$k = k+1$, go to Step 1.
+	
+		\end{algorithmic}
+	\end{algorithm}
+
+
+	\newpage
+    \section{Proof of convergence}
+    \label{sec:proof}
+    
+    \begin{assumption}
+    There exsits $\kappa_{low}$ such that,
+    \begin{equation}
+    	\tag{AS.1}
+    	\label{as:flb}
+    	\forall x \in \set{R}^n,\, f(x) \geq \kappa_{low}.
+    \end{equation} 
+    \end{assumption}
+    
+    \begin{lemma}
+    	\label{lem:f_pseudotaylor_diff_sum_inexact}
+    	For all $k>0$,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			|f_k - f(\hat{c}_k) -\tsdifffp_k| \leq & |f(x_k)-f_k| + \tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2\\
+    			&  + \delta||\nabla_f(x_k)||\left(||x_k||+||\skfp{k}||\right)+  |\gd_k^T\skfp{k}(1+\vartheta_{n+2}) - \nabla_f(x_k)^T\skfp{k}|.
+    		\end{array}
+    	\end{equation}
+    \end{lemma}
+    
+    \begin{proof}
+    	With the triangular inequality, one has,
+    	\begin{equation}
+    		\label{eq:f_pseudotaylor_diff_sum_inexact_proof0}
+    		\begin{array}{ll}
+    			|f_k - f(\hat{c}_k) -\tsdifffp_k| & \leq |f_k-f(x_k)| + |f(x_k) - f(\hat{c}_k) - \tsdifffp_k|.
+    		\end{array}
+    	\end{equation}
+    	By Lemma~\ref{lem:pseudo_reduction},
+    	\begin{equation}
+    		\label{eq:f_pseudotaylor_diff_sum_inexact_proof1}
+    		\begin{array}{ll}
+    			& |f(x_k) - f(\hat{c}_k) - \tsdifffp_k|\\
+    			\leq &  |f(x_k) - f(\hat{c}_k) + \gd_k^T\skfp{k}(1+\vartheta_{n+2})|\\
+    			\leq & |f(x_k) - f(\hat{c}_k) + \nabla f(x_k)^T\skfp{k}| + |\gd_k^T\skfp{k}(1+\vartheta_{n+2}) - \nabla f(x_k)^T\skfp{k}|.
+    		\end{array}
+    	\end{equation}
+    	By triangular inequality,
+    	\begin{equation}
+    		\label{eq:f_pseudotaylor_diff_sum_inexact_proof_2}
+    		\begin{array}{ll}
+    			& |f(x_k) - f(\hat{c}_k) + \nabla f(x_k)^T\skfp{k}|\\
+    			\leq & |f(x_k) - f(\hat{c}_k) + \nabla f(x_k)^T(x_k \delta +\skfp{k}(1+\delta)| + | \nabla f(x_k)^T\skfp{k} - \nabla f(x_k)^T(x_k \delta +\skfp{k}(1+\delta)|\\
+    		\end{array}
+    	\end{equation}
+	    Recalling that~(\cite{birgin2017worst})
+	    \begin{equation}
+	    	|f(x_k+s) - T(x_k,s)| \leq \dfrac{1}{2}L||s||^2,
+	    \end{equation}
+	    one has, 
+	    \begin{equation}
+	    	\label{eq:f_pseudotaylor_diff_sum_inexact_proof_4}
+	    	\begin{array}{ll}
+	    		|f(x_k) - f(\hat{c}_k) + \nabla f(x_k)^T(x_k \delta +\skfp{k}(1+\delta))| & = |T(x_k,x_k \delta +\skfp{k}(1+\delta))- f(\hat{c}_k)|\\
+	    		& \leq \dfrac{1}{2}L||x_k \delta + \skfp{k}(1+\delta)||^2.
+	    	\end{array}
+	    \end{equation}
+    	By triangular inequality,
+    	\begin{equation}
+    		\label{eq:f_pseudotaylor_diff_sum_inexact_proof_3}
+    		\begin{array}{ll}
+    			|\nabla f(x_k)^T\skfp{k} - \nabla f(x_k)^T(x_k \delta +\skfp{k}(1+\delta))| & = \delta|\nabla f(x_k)^T(x_k+\skfp{k})|\\
+    			& \leq \delta||\nabla f(x_k)^T||\,||(x_k+\skfp{k})||\\
+    			& \leq \delta||\nabla f(x_k)^T||\,(||x_k||+||\skfp{k}||).
+    		\end{array}
+    	\end{equation}
+  
+    	Injecting Inequalities~\eqref{eq:f_pseudotaylor_diff_sum_inexact_proof_3} and \eqref{eq:f_pseudotaylor_diff_sum_inexact_proof_4} into \eqref{eq:f_pseudotaylor_diff_sum_inexact_proof_2},
+    	\begin{equation}
+    		\label{eq:f_pseudotaylor_diff_sum_inexact_proof5}
+    		|f(x_k) - f(\hat{c}_k) - \nabla f(x_k)^T\skfp{k}| \leq \dfrac{1}{2}L||x_k \delta + \skfp{k}(1+\delta)||^2 + \delta||\nabla f(x_k)^T||\,(||x_k||+||\skfp{k}||)
+    	\end{equation}
+    	Putting together Inequalities~\eqref{eq:f_pseudotaylor_diff_sum_inexact_proof0}, \eqref{eq:f_pseudotaylor_diff_sum_inexact_proof1} and \eqref{eq:f_pseudotaylor_diff_sum_inexact_proof5} provides the inequality stated by Lemma~\ref{lem:f_pseudotaylor_diff_sum_inexact}
+    \end{proof}
+    
+    \begin{lemma}
+    	\label{lem:gd_nabla_diff}
+    	For all $k>0$,
+    	\begin{equation}
+    		\left|\dfrac{\gd_k^T\skfp{k}(1+\vartheta_{n+2}) - \nabla_f(x_k)^T\skfp{k}}{\tsdifffp_k}\right| \leq \dfrac{u+\frac{\gamma_{n+2}}{1+\gamma_{n+2}}+\alpha_n\eg(x_k)}{1-u}.
+    	\end{equation}
+    \end{lemma}
+    \begin{proof}
+    	With Lemma~\ref{lem:pseudo_reduction} and \eqref{eq:sk_exp},
+    	\begin{equation*}
+    		\begin{array}{ll}
+    			\tsdifffp_k & = -\gd_k^T\skfp{k}(1+\vartheta_{n+2})\\
+    			& = \dfrac{||\gd_k||^2}{\sigma_k}(1+\vartheta_{n+2}),
+    		\end{array}
+    	\end{equation*}
+    	As a consequence,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			\left|\dfrac{\gd_k^T\skfp{k}(1+\vartheta_{n+2}) - \nabla_f(x_k)^T\skfp{k}}{\tsdifffp_k}\right| & \leq \dfrac{||\gd_k(1+\vartheta_{n+2}) - \nabla f(x_k)|| \, ||\skfp{k}||}{||\gd_k||^2/\sigma_k(1+\vartheta_{n+2})}\\
+    		\end{array}
+    	\end{equation}
+    	Since $||\skfp{k}|| = ||\gd_k||/\sigma_k$,
+    	\begin{equation}
+    		\label{eq:gd_nabla_diff_proof_1}
+    		\begin{array}{ll}
+    			\left|\dfrac{\gd_k^T\skfp{k}(1+\vartheta_{n+2}) - \nabla_f(x_k)^T\skfp{k}}{\tsdifffp_k}\right| & \leq \dfrac{||\gd_k(1+\vartheta_{n+2}) - \nabla f(x_k)||}{||\gd_k||(1+\vartheta_{n+2})}\\
+    			& \leq \dfrac{||\gd_k(1+\vartheta_{n+2}) - g_k||}{||\gd_k||(1+\vartheta_{n+2})} + \dfrac{||g_k - \nabla f(x_k)||}{||\gd_k||(1+\vartheta_{n+2})}\\
+    			& \leq \dfrac{||\gd_k(1+\vartheta_{n+2}) - g_k||}{||\gd_k||(1+\vartheta_{n+2})} + \alpha_n\dfrac{||g_k - \nabla f(x_k)||}{||\gd_k||}.\\
+    		\end{array}
+    	\end{equation}
+    	By Lemma~\ref{lem:g_actual_diff},
+    	\begin{equation}
+    		\label{eq:gd_nabla_diff_proof_2}
+    		\begin{array}{ll}
+    			\alpha_n\dfrac{||g_k - \nabla f(x_k)||}{||\gd_k||} & \leq \alpha_n\dfrac{\eg(x_k)||g_k||}{||\gd_k||}\\
+    			& \leq \alpha_n\dfrac{\eg(x_k)}{1-u}.
+    		\end{array}
+    	\end{equation}
+    	Furthermore, because $\vartheta_{n+2}$ is a particular rounding error propagation model,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			\dfrac{||\gd_k(1+\vartheta_{n+2}) - g_k||}{||\gd_k||(1+\vartheta_{n+2})}
+    			& \leq \dfrac{||\gd_k - g_k||}{||\gd_k||} + \dfrac{||g_k(1+\vartheta_{n+2}) - g_k||}{||\gd_k||(1+\vartheta_{n+2})} \\
+    			& = \dfrac{||\gd_k - g_k||}{||\gd_k||} + \dfrac{||g_k||\vartheta_{n+2}}{||\gd_k||(1+\vartheta_{n+2})} \\
+    			& \leq \dfrac{||\gd_k - g_k||}{||\gd_k||} + \dfrac{\gamma_{n+2}}{1+\gamma_{n+2}}\dfrac{||g_k||}{||\gd_k||}. \\
+    		\end{array}
+    	\end{equation}
+    	By Lemma~\ref{lem:g_actual_diff}, it follows that,
+    	\begin{equation}
+    		\label{eq:gd_nabla_diff_proof_3}
+    		\begin{array}{ll}
+    			\dfrac{||\gd_k(1+\vartheta_{n+2}) - g_k||}{||\gd_k||(1+\vartheta_{n+2})} & \leq  \dfrac{u+\frac{\gamma_{n+2}}{1+\gamma_{n+2}}}{1-u}.
+    		\end{array}
+    	\end{equation}
+    	Putting Inequalities~\eqref{eq:gd_nabla_diff_proof_2} and \eqref{eq:gd_nabla_diff_proof_3} in Inequality \eqref{eq:gd_nabla_diff_proof_1}, one obtains the inequality stated by Lemma~\ref{lem:gd_nabla_diff}
+    \end{proof}
+    
+    \begin{lemma}
+    	\label{lem:sigma-very-successful-inexact-sum}
+    	For all $k>0$,
+    	\begin{equation}
+    		\dfrac{1}{\sigma_k} \leq \left[1-\eta_2 - \eta_0 - \dfrac{\wgaugbound}{2}\right]\dfrac{1}{\alpha_nL(1+\lambda_k)} \implies \rho_k\geq \eta_2,
+    	\end{equation} 
+    	with $\lambda_k = u^2\phi_k^2+u^2\phi_k + u\phi_k +2u+u^2$.
+    \end{lemma}
+    
+    \begin{proof}
+    	By triangular inequality,
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_1}
+    		\begin{array}{ll}
+    			& |\rho_k - 1|  =\left| \dfrac{f_k - f_k^+ - \tsdifffp_k}{ \tsdifffp_k}\right|\\
+    			\leq & \left|\dfrac{f((x_k+\skfp{k})(1+\delta)) - f_k^+}{\tsdifffp_k}\right| + \left|\dfrac{f_k - f((x_k+\skfp{k})(1+\delta)) - \tsdifffp_k}{\tsdifffp_k}\right|\\
+    		\end{array}
+    	\end{equation} 
+    	The termination condition at Step 3 ensures,
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_2}
+    		\left|\dfrac{f((x_k+\skfp{k})(1+\delta)) - f_k^+}{\tsdifffp_k}\right| \leq \eta_0.
+    	\end{equation}
+    	By Lemma~\ref{lem:f_pseudotaylor_diff_sum_inexact} and Lemma~\ref{lem:gd_nabla_diff},
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_3}
+    		\begin{array}{ll}
+    			& \left|\dfrac{f_k - f((x_k+\skfp{k})(1+\delta)) - \tsdifffp_k}{\tsdifffp_k}\right|\\
+    			\leq & \eta_0 + \dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{\tsdifffp_k} + \dfrac{\delta||\nabla_f(x_k)||\left(||x_k||+||\skfp{k}||\right)}{\tsdifffp_k}+  \dfrac{u+\frac{\gamma_{n+2}}{1+\gamma_{n+2}}+\alpha_n\eg(x_k)}{1-u}.
+    		\end{array}
+    	\end{equation}
+    	By Lemma~\ref{lem:pseudo_reduction}, and recalling that $||\skfp{k}|| = ||\gd_k||/\sigma_k$ and $\tsdifffp_k = ||\gd_k||^2/\sigma_k$,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			\dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{\tsdifffp_k} & = \dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{||\gd_k||^2/\sigma_k(1+\vartheta_{n+2})} \\
+    			& \leq \alpha_n \dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{||\gd_k||^2/\sigma_k}\\
+    			& = \alpha_n \dfrac{\tfrac{1}{2}L(||x_k \delta|| + ||\skfp{k}(1+\delta)||)^2}{||\gd_k||^2/\sigma_k},
+    		\end{array}
+    	\end{equation}
+    	and since the mechanism at Step 2 ensures $||x_k|| \leq \phi_k ||\skfp{k}||$, one further has,
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_4}
+    		\begin{array}{ll}
+    			\dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{\tsdifffp_k} & \leq \alpha_n \dfrac{\tfrac{1}{2}L\left(\delta\phi_k||\skfp{k}||+(1+\delta)||\skfp{k}||\right)^2}{||\gd_k||^2/\sigma_k}\\
+    			& \leq \alpha_n \dfrac{\tfrac{1}{2}L||\skfp{k}||^2(\delta^2\phi_k^2 + \delta\phi_k+\delta^2\phi_k +1+\delta+\delta^2)}{||\gd_k||^2/\sigma_k}\\
+    			& \leq \alpha_n \dfrac{\tfrac{1}{2}L(1+\lambda_k)}{\sigma_k},
+    		\end{array}
+    	\end{equation}
+    	with $\lambda_k$ as given in the Statement of the Lemma.
+    	
+    	Furthermore, having $||x_k|| \leq \phi_k ||\skfp{k}||$ ensures,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			\dfrac{\delta||\nabla_f(x_k)||\left(||x_k||+||\skfp{k}||\right)}{\tsdifffp_k} & \leq \alpha_n \dfrac{\delta||\nabla_f(x_k)||\left(\phi_k||\skfp{k}||+||\skfp{k}||\right)}{||\gd_k||^2/\sigma_k}\\
+    			& = \alpha_n \dfrac{\delta||\nabla_f(x_k)||\left(\phi_k+1\right)}{||\gd_k||},\\
+    		\end{array}
+    	\end{equation}
+    	and by Lemma~\ref{lem:g_actual_diff} and triangular inequality,
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_5}
+    		\begin{array}{ll}
+    			\dfrac{\delta||\nabla_f(x_k)||\left(||x_k||+||\skfp{k}||\right)}{\tsdifffp_k} & \leq \alpha_n \delta(\phi_k+1)\left( \dfrac{||\nabla_f(x_k)-g_k||}{||\gd_k||} +  \dfrac{||g_k||}{||\gd_k||}\right)\\
+    			& \leq \alpha_n u(\phi_k+1)\left( \dfrac{\eg(x_k)}{1-u} +  \dfrac{1}{1-u}\right).\\
+    		\end{array}
+    	\end{equation}
+    	Putting Inequalities~\eqref{eq:sigma-very-successful-inexact-sum_proof_3}, \eqref{eq:sigma-very-successful-inexact-sum_proof_4} and \eqref{eq:sigma-very-successful-inexact-sum_proof_5} together,
+    	\begin{equation}
+    		\label{eq:sigma-very-successful-inexact-sum_proof_6}
+    		\begin{array}{ll}
+    			& \dfrac{\tfrac{1}{2}L||x_k \delta+\skfp{k}(1+\delta)||^2}{\tsdifffp_k}\\
+    			\leq & \eta_0 + \alpha_n \dfrac{\tfrac{1}{2}L(1+\lambda_k)}{\sigma_k} + \alpha_n u(\phi_k+1)\left( \dfrac{\eg(x_k)+1}{1-u}\right) +  \dfrac{u+\frac{\gamma_{n+2}}{1+\gamma_{n+2}}+\alpha_n\eg(x_k)}{1-u}.
+    		\end{array} 
+    	\end{equation} 
+    	Putting Inequalities~\eqref{eq:sigma-very-successful-inexact-sum_proof_1}, \eqref{eq:sigma-very-successful-inexact-sum_proof_2} and \eqref{eq:sigma-very-successful-inexact-sum_proof_6} together,
+    	\begin{equation}
+    		\begin{array}{ll}
+    			|\rho_k - 1|  & \leq 2 \eta_0 + \alpha_n \dfrac{\tfrac{1}{2}L(1+\lambda_k)}{\sigma_k} + \dfrac{\alpha_n \eg(x_k)(u+\phi_k u+1) + u(\phi_k\alpha_n+\alpha_n+1) + \frac{\gamma_{n+2}}{1+\gamma_{n+2}}}{1-u} \\
+    		\end{array}
+    	\end{equation} 
+    	
+    	Step 2 of Algorithm~\ref{alg:qrfp} ensures that
+    	\begin{equation*}
+    		\mu_k = \dfrac{\alpha_n \eg(x_k)(u+\phi_k u+1) + u(\phi_k\alpha_n+\alpha_n+1) + \frac{\gamma_{n+2}}{1+\gamma_{n+2}}}{1-u} \leq \wgaugbound,
+    	\end{equation*}
+    	and it follows that,
+    	\begin{equation}
+    		|\rho_k-1| \leq 2\eta_0+ \wgaugbound + \alpha_n\dfrac{\frac{1}{2}L(1+\lambda_k)}{\sigma_k}.
+    	\end{equation}
+    	Therefore, with $1/\sigma_k \leq \left[1-\eta_2 - 2\eta_0 - \wgaugbound\right]\dfrac{1}{\alpha_nL(1+\lambda_k)}$, the inequality rewrites
+    	\begin{equation}
+    		\begin{array}{ll}
+    			|\rho-1| & \leq \frac{1}{2}(1-\eta_2) + \eta_0 + \dfrac{\wgaugbound}{2}
+    		\end{array} 
+    	\end{equation}
+    	and since the parameters are chosen such that $\eta_0+\dfrac{\wgaugbound}{2} \leq \frac{1}{2}(1-\eta_2)$, it follows that $|\rho-1| \leq 1-\eta_2$.
+    \end{proof}
+
+	\begin{lemma}
+		\label{lem:sigma_max}
+		For all $k>0$,
+		\begin{equation}
+			\sigma_k \leq \sigma_{max} =  \dfrac{\gamma_3 L(1+\lambda_{max})\alpha_n}{ 1-\eta_2 - \eta_0 - \dfrac{\wgaugbound}{2}},
+		\end{equation}
+		with \begin{equation*}
+			\lambda_{max} = \left((1-u)\dfrac{\kappa_\mu}{u}\right)^2 + (1-u)\dfrac{\kappa_\mu}{u} +u.
+		\end{equation*}
+	\end{lemma}
+	\begin{proof}
+		The termination condition at Step 2 ensures that
+		\begin{equation}
+			u(\phi_k\alpha_n+\alpha_n+1) \leq \kappa_\mu(1-u). 
+		\end{equation}
+		It follows that 
+		\begin{equation}
+			u\phi_k +u \leq \dfrac{\kappa_\mu}{\alpha_n}(1-u).
+		\end{equation}
+		Rewritting 
+		\begin{equation}
+			\lambda_k = (u\phi_k +u)^2 + u\phi_k +u + u,
+		\end{equation}
+		one has, for all $k>0$, $\lambda_k \leq \lambda_{max}$.
+		The inequality stated by the lemma is straightforward from Lemma~\ref{lem:sigma-very-successful-inexact-sum} and \eqref{eq:sigma_update}.
+	\end{proof}
+
+	Let $S_k = \left\{0\leq j\leq k\,|\,\rho_j\geq \eta_1\right\}$ be the set of successful iterations and $U_k = \left\{0\leq j\leq k\,|\,\rho_j< \eta_1\right\}$ be the set of unsuccessful iterations.
+
+	\begin{lemma}
+		\label{lem:k_bounded}
+		For all $k>0$, 
+		\begin{equation}
+			k \leq |S_k|\left(1+\dfrac{|\log(\gamma_1)|}{\log(\gamma_2)}\right) +\dfrac{1}{\log(\gamma_2)}\log\left(\dfrac{\sigma_{max}}{\sigma_0}\right).
+		\end{equation}
+	\end{lemma}
+
+	\begin{proof}
+		From the update formula of $\sigma_k$ \eqref{eq:sigma_update}, one has for each $k>0$,
+		\begin{equation*}
+			\forall j \in S_k,\, \gamma_1\sigma_j\leq \max\left[\gamma_1\sigma_j,\sigma_{min} \right]\text{ and } \forall i\in U_k,\, \gamma_2\sigma_i \leq \gamma_{i+1}.
+		\end{equation*}
+	It follows that,
+	\begin{equation}
+		\sigma_0\gamma_1^{|S_k|}\gamma_2^{|U_k|}\leq \sigma_k.
+	\end{equation}
+    With Lemma~\ref{lem:sigma_max} one obtains,
+    \begin{equation}
+    |S_k|\log{\gamma_1}+|U_k|\log{\gamma_2}\leq \log\left(\dfrac{\sigma_{max}}{\sigma_0}\right).
+    \end{equation}
+	Since $\gamma_2>1$, it follows that,
+	\begin{equation}
+		|U_k| \leq -|S_k|\dfrac{\log(\gamma_1)}{\log(\gamma_2)} +\dfrac{1}{\log(\gamma_2)}\log\left(\dfrac{\sigma_{max}}{\sigma_0}\right).
+	\end{equation}
+    Since $k = |S_k|+|U_k|$, the statement of Lemma~\ref{lem:k_bounded} holds true.
+	\end{proof}
+
+	\begin{theorem}
+		\label{th:complexity}
+		If the stopping conditions at Steps 2 and 3 are not met, Algorithm~\ref{alg:qrfp} needs at most
+		\begin{equation*}
+			\epsilon^{-2}\kappa_s(f(x_0)-\kappa_{low}),
+		\end{equation*}
+	successful iterations, with 
+	\begin{equation}
+		\kappa_s=\alpha_n\sigma_{max}(1+\wgaugbound)^2 \dfrac{1}{\eta_1-2\eta_0}\left(\dfrac{1+\gamma_n}{1-\gamma_{n+1}}\right)^2,
+	\end{equation} and at most  
+	\begin{equation*}
+		\epsilon^{-2}\kappa_s(f(x_0)-\kappa_{low}) \left(1+\dfrac{|\log(\gamma_1)|}{\log(\gamma_2)}\right) +\dfrac{1}{\log(\gamma_2)}\log\left(\dfrac{\sigma_{max}}{\sigma_0}\right)
+	\end{equation*}
+	iterations to provide an iterate $x_k$ such that $\nabla f(x_k)\leq \epsilon$.
+	\end{theorem}
+
+	\begin{proof}
+		One has,
+		\begin{equation}
+			\begin{array}{ll}
+				f(x_0) - \kappa_{low} & \geq (\eta_1-2\eta_0)\displaystyle\sum_{j\in S_k}\tsdifffp_j\\
+				& \geq (\eta_1-2\eta_0)(1-\gamma_{n+2})\displaystyle\sum_{j\in S_k}\pseudoT(x_j,0)-\pseudoT(x_j,\skfp{j})\\
+				& \geq (\eta_1-2\eta_0)(1-\gamma_{n+2})\displaystyle\sum_{j\in S_k}||\gd_j||^2/\sigma_j\\
+			\end{array}
+		\end{equation} 
+	From the termination condition at Step 1, before termination $||g_k||$ can be lower bounded as,
+	\begin{equation}
+		\widehat{||g_k||} = ||g_k||(1+\theta_n) > (1-\gamma_n)\dfrac{\epsilon}{1+\eg(x_k)} \implies ||g_k|| > \dfrac{1-\gamma_n}{1+\gamma_n} \dfrac{\epsilon}{1+\eg(x_k)},
+	\end{equation}
+	and by Lemma~\ref{lem:g_actual_diff} one has $||\gd_k||\geq ||g_k|| (1-u)$.
+	Furthermore,
+	\begin{equation}
+		\eg(x_k) \leq \wgaugbound.
+	\end{equation}
+	It follows that,
+	\begin{equation}
+		f(x_0) - \kappa_{low} \geq (\eta_1-2\eta_0)(1-\gamma_{n+2})|S_k|\left(\dfrac{(1-\gamma_n)(1-u)}{1+\gamma_n}\right)^2\dfrac{\epsilon^2}{(1+\wgaugbound)^2\sigma_{max}}.\\
+	\end{equation}
+		
+
+	This proves the first statement of Theorem~\ref{th:complexity}. Using the above inequality with Lemma~\ref{lem:k_bounded} proves the second statement.
+	\end{proof}
+
+	\begin{lemma}
+		For all $k>0$, the bound on objective function evaluation error required at Step 3 to ensure convergence is lower bounded as,
+		\begin{equation}
+			\eta_0 \tsdifffp_k > \eta_0 \left(\dfrac{1-\gamma_{n+1}}{1+\gamma_n}\dfrac{\epsilon}{1+\wgaugbound}\right)^2\dfrac{1}{\alpha_n\sigma_{max}}.
+		\end{equation}
+	\end{lemma}
+	\begin{proof}
+		The stopping criterion at Step 1 ensure $||g_k|| > \dfrac{1-\gamma_{n}}{1+\gamma_n}\dfrac{\epsilon}{1+\wgaugbound}$. As a consequence, for all $k>0$, one has,
+		\begin{equation*}
+			\begin{array}{ll}
+				\tsdifffp_k & = (1+\vartheta_{n+2})\dfrac{||\gd_k||^2}{\sigma_k}\\
+				& \geq \dfrac{||g_k||^2(1-u)^2}{\alpha_n\sigma_k}\\
+				& \geq \dfrac{||g_k||^2(1-u)^2}{\alpha_n\sigma_{max}}\\
+				& > \left(\dfrac{\epsilon}{1+\wgaugbound}\dfrac{1-\gamma_{n+1}}{1+\gamma_n}\right)^2\dfrac{1}{\alpha_n\sigma_{max}}
+			\end{array}
+		\end{equation*}
+		The mechanism at Step 3 enforces $\ef(x_k) \leq \eta_0 \tsdifffp_k$. With the above equation, one has,
+		\begin{equation*}
+			\eta_0 \tsdifffp_k > \eta_0 \left(\dfrac{\epsilon}{1+\wgaugbound}\dfrac{1-\gamma_{n+1}}{1+\gamma_n}\right)^2\dfrac{1}{\alpha_n\sigma_{max}}.
+		\end{equation*}
+	\end{proof}
+
+	
+	
+
+	\section{Multi-Precision Algorithm}
+	
+	
+	In the previous sections, it was supposed that every computation was performed with the same finite precision level. Suppose that the computations can be done with several precision levels (\emph{e.g.} half, single, double precision). In order to save time and energy, one would want to perform the computations with the lowest precision level that still ensures convergence. The idea of multi-precision is to adapt at every iteration the precision level of the computations to do so.
+	
+	In the following, a precision level is denoted $\pi$. We suppose that there are several precision levels available $\{\pi_1,...,\pi_m\}$, with $\pi_1$ the lowest precision level, \emph{e.g.}, $\pi_1$ is 16 bits, $\pi_2$ is 32 bits and $\pi_3$ is 64 bits. The inexact functions $\ffp$ and $g$ and the error functions $\omega$ are extended as,
+	\begin{equation}
+		\label{eq:fgerr_mp}
+		||f(x)-\ffp(x,\pi)||\leq \ef(x,\pi), \quad ||\nabla f(x)-g(x,\pi)||\leq \eg(x,\pi)||g(x,\pi)||.
+	\end{equation}
+	The precision level is added as a second argument to indicate the precision level with which is performed the computations. We also denote $\fl{x,\pi}$ the operation of casting $x$ from its initial precision level into the precision level $\pi$. We suppose that the operation $\fl{x,\pi}$ is implicitly performed before evaluating $\ffp(x,\pi)$ or $g(x,\pi)$ if the precision level of $x$ is different than $\pi$.
+	
+	In order to limit rounding errors to occur, we suppose that $\gamma_1$ and $\gamma_3$ are powers of 2, positive and negative, respectively, and $\sigma_{min}$ and $\sigma_0$ can be represented in the lowest precision available. This ensure that $\sigma_k$ is representable in any precision and avoids rounding errors due to casting in a different precision. As a consequence, we can safely ignore the precision level of $\sigma_k$ in the following.
+	
+	One can choose to perform each computations in Algorithm~\ref{alg:qrfp} with a different precision level. However, doing so would lead to complex convergence analysis. As a consequence, we limit our study to five different levels of precision:
+	\begin{itemize}
+		\item $\xpreck{k}$ is the precision level of $x_k$ at iteration $k$,
+		\item $\gpreck{k}$ is the precision level for gradient evaluation at iteration $k$,
+		\item $\fpreck{k}$ is the precision level for objective function evaluation at $\hat{c}_k$ at iteration $k$,
+		\item $\fprecrecompk{k}$ is the precision level for objective function evaluation at $x_k$ at iteration $k$,
+		\item $\cpreck{k}$ is the precision level of the candidate $\hat{c}_k$ at iteration $k$.
+	\end{itemize} 
+	
+	
+	An important remark is that evaluating the objective function or the gradient can be done only with a precision level greater or equal to the one of their arguments. For example, if $x_k$ is represented in 32 bits and $g(x_k)$ is evaluated in 16 bits, it implies that $x_k$ is casted into 16 bits, a rounding error occurs and therefore $g$ is not evaluated at $x_k$ but at close though different point, which is not acceptable. If the evaluation of $g$ is done in a higher precision than $x_k$, it is harmless since no rounding error occurs when casting $x_k$ to a higher precision (\emph{e.g.} 64 bits). Following this remark, Algorithm~\ref{alg:qrmp}, the multi-precision extension of Algorithm~\ref{alg:qrfp}, works as follows.
+	
+	At Step 1 and 2, we enforce for simplicity that the computations are performed with the precision $\gpreck{k}$. As a consequence, at iteration $k$, $\gamma_n$ and $\alpha_n$ depend on the machine precision related to $\gpreck{k}$, denoted $u_k^g$. In the multi-precision context, $\gamma_n^k$ and $\alpha_n^k$ are denoted with the superscript $k$ to indicate this dependency to the iterate $k$.
+	Note also that the precision level of $\skfp{k}$ computed at Step 2 is $\gpreck{k}$. Step 1 remains unchanged compare to Algorithm~\ref{alg:qrfp}. Step 2 however must be adapted to take into account the different precision levels. First, the precision level update mechanism in Step 4 (detailed below) ensures that $\gpreck{k}$ is greater than the precision level of $x_k$. Secondly, Algorithm~\ref{alg:qrmp} allows $\gpreck{k}\neq \cpreck{k}$, and it might be necessary to cast $\hat{c}_k$ into $\cpreck{k}$. It follows that, after the casting operation,
+	\begin{equation*}
+		\fl{\hat{c}_k,\cpreck{k}} = \hat{c}_k(1+\delta_k^c) = c_k(1+\delta_{k}^g)(1+\delta_{k}^c) =  c_k(1+\dmixk{k}),
+	\end{equation*}
+	with $\delta_{k}^g$ the error due to addition with the precision $\gpreck{k}$, $\delta_{k}^c$ the rounding error due to casting from precision $\gpreck{k}$ into $\cpreck{k}$, and $\dmixk{k} = \delta_{k}^g + \delta_{k}^c +\delta_{k}^g\delta_{k}^c$. Note that $\dmixk{k} = \delta_{k}^g$ if $\cpreck{k} > \gpreck{k}$ since no casting error occurs. Due to the rounding error $\dmixk{k}$, that mixes errors related to $\gpreck{k}$ and $\cpreck{k}$, $\mu_k$ is redefined as its counterpart $\tilde{\mu}_k$ defined  with $\umixk{k} = u_k^g + u_k^g +u_k^g u_k^c$, with $u_k^c$ the machine precision related to $\cpreck{k}$. Step 2 enforces that $\tilde{\mu}_k\leq \kappa_\mu$ by either increasing $\cpreck{k}$ or increasing $\gpreck{k}$ to reduce $\eg(x_k)$.
+	
+	At Step 3, Algorithm~\ref{alg:qrmp} chooses $\fpreck{k}$ such that the objective function evaluation error at $\hat{c}_k$ is lower than $\eta_0\tsdifffp_k$ to ensure convergence. In addition, it might be necessary to recompute the objective function evaluation at $x_k$ (done at the previous iteration) with a precision level $\fprecrecompk{k} > \fpreck{k-1}$ to ensure that the evaluation error is small enough to ensure convergence. Note that $\fpreck{k}$ and $\fprecrecompk{k}$ are chosen greater than $\cpreck{k}$ which avoids rounding errors due to implicit casting. As such, $\cpreck{k}$ is the lowest possible precision level for objective function evaluation.
+	
+	Step 4 remains similar than in Algorithm~\ref{alg:qrfp}, except that the precision levels are updated. $\gpreck{k+1}$ is chosen greater or equal than $\xpreck{k}$ to avoid rounding error due to casting of $x_k$ into a smaller precision (see remark above). $\cpreck{k+1}$ can be chosen freely, and enables to lower the evaluation precisions. Indeed, if one simply compute $\hat{c}_k = \fl{x_k+s_k}$, the precision level of $\hat{c}_k$ is $\pi_k^g \geq \pi_k^x$. As a consequence, $\pi_k^{x+1} \geq \pi_k^x$ and the precision levels $\pi_k^g$, $\pi_k^f$ and $\pi_k^{f^-}$ can only increase over the iterations. Allowing to choose $\pi_k^c$ freely, and in particular lower than $\pi_x^k$, allows to decrease the percision levels for evaluating $f$ and $g$. Note that $\pi_k^f \leq \pi_k^c$ and if iteration $k$ is successful, then $ \pi_{k+1}^g,\,\pi_{k+1}^{f^-} \leq \pi_k^c$. 
+	
+
+		\begin{algorithm}
+			\caption{MR2: Multi-precision quadratic regularization algorithm}
+			\label{alg:qrmp}
+			
+			\begin{algorithmic}
+				\State \textbf{Step 0: Initialization:} Initial point $x_0$, initial value $\sigma_0$, minimal value $\sigma_{min}$ for $\sigma$, final gradient accuracy $\epsilon$, formula for $\gamma_n$. Constant values $\eta_0$, $\eta_1$, $\eta_2$, $\gamma_1$, $\gamma_2$, $\gamma_3$, $\wgaugbound$ such that,
+				\begin{equation}
+					\label{eq:param_cond_mp}
+					0<\eta_1\leq \eta_2<1\quad 0<\gamma_1<1<  \gamma_2 \leq \gamma_3, \quad \eta_0<\frac{1}{2}\eta_1 \quad \eta_0+\dfrac{\wgaugbound}{2} \leq \frac{1}{2}(1-\eta_2)
+				\end{equation}
+				Set $k=0$, compute $f_0 = \ffp(x_0)$. Set $\cpreck{0}$ and $\gpreck{0}$ as the precision of $x_0$.
+				\State \textbf{Step 1: Check for termination:} If $k = 0$ or $x_k \neq x_{k-1}$, compute $g_k = g(x_k,\gpreck{k})$. Compute $\widehat{||g_k||} = fl(||g_k||)$. Terminate if \begin{equation}
+					\label{eq:stop_crit_mp}
+					\widehat{||g_k||} \leq \dfrac{(1-\gamma_{\ceil{\frac{n}{2}}+1}^k)\epsilon}{(1+\eg(x_k,\gpreck{k}))}
+				\end{equation}
+				%			\red{With condition in~\cite{birgin2017worst}, terminate if $\dfrac{\eg(x_k)+u}{1-u}>1/\sigma_k$}.
+				\State \textbf{Step 2: Step calculation: } Compute $\skfp{k} = \fl{g_k/\sigma_k}$.\\
+				Compute $\hat{\phi}_k = \fl{\dfrac{||x_k||}{||s_k||}}$. 
+				Define $\phi_k = \hat{\phi}_k\dfrac{1+\gamma_{\ceil{\frac{n}{2}}+1}^k}{1-\gamma_{\ceil{\frac{n}{2}}+1}^k}$. Define $\umixk{k} = u_k^g + u_k^c + u_k^g u_k^c$.\\
+				Define $\tilde{\mu}_k = \dfrac{\alpha_n^k \eg(x_k)(\umixk{k}+\phi_k \umixk{k}+1) + \umixk{k}(\phi_k\alpha_n^k+\alpha_n^k+1) + \frac{\gamma_{n+2}^k}{1+\gamma_{n+2}^k}}{1-\umixk{k}}$.\\ If $ \tilde{\mu}_k > \wgaugbound$: increase $\gpreck{k}$ and go to Step 1 or increase $\cpreck{k}$. Terminates if no available precision levels $(\cpreck{k},\gpreck{k})$ ensure the inequality.\\
+				Compute $\hat{c}_k = \fl{x_k+\hat{c}_k}$.\\
+				Cast $\hat{c}_k$ into $\cpreck{k}$.\\
+				Compute approximated taylor series decrease $\tsdifffp_k = \fl{g_k^T\skfp{k}}$.\\
+				
+				
+				
+				
+				\State \textbf{Step 3: Evaluate the objective function: }
+				Choose $\fpreck{k}\geq \cpreck{k}$ such that $\ef(\hat{c}_{k})\leq \eta_0 \tsdifffp_k.$ Compute $f_k^+ = \ffp(\hat{c}_k,\fpreck{k})$. Terminates if such precision is not available.\\
+				If $\ef(x_k,\fpreck{k-1})> \eta_0 \tsdifffp_k$, choose $\fprecrecompk{k}>\fpreck{k-1}$ such that $\ef(x_k,\fprecrecompk{k})\leq \eta_0\tsdifffp_k$. Re-compute $f_k = \ffp(x_k,\fprecrecompk{k})$.
+				Terminates if such precsion is not available.\\
+				
+				\State \textbf{Step 4: Acceptance of the trial point: } Define the ratio
+				\begin{equation}
+					\rho_k = \dfrac{f_k - f_k^+}{\tsdifffp_k}
+				\end{equation}
+				If $\rho_k \geq \eta_1$, then $x_{k+1} =\hat{c}_k$, $f_{k+1} = f_k^+$. Otherwise set $x_{k+1} = x_k$, $f_{k+1} = f_k$.\\
+				Select $\gpreck{k+1} \geq \xpreck{k}$,  select $\cpreck{k+1}$.
+				
+				\State \textbf{Step 5: Regularization  parameter update: }
+				\begin{equation}
+					\label{eq:sigma_update_multi}
+					\sigma_{k+1} \in \left\{
+					\begin{array}{ll}
+						[\max(\sigma_{min},\gamma_1\sigma_k),\sigma_k] & \text{if } \rho_k \geq \eta_2\\
+						
+						[\sigma_k,\gamma_2\sigma_k] & \text{if }\rho_k \in [\eta_1,\eta_2) \\
+						
+						[\gamma_2\sigma_k,\gamma_3\sigma_k] & \text{if } \rho_k \in < \eta_1 \\
+					\end{array}
+					\right.
+				\end{equation}
+				$k = k+1$, go to Step 1.
+				
+			\end{algorithmic}
+		\end{algorithm}
+	
+	
+	\section{Proof of convergence of MR2}
+	\label{sec:proof_mp}
+	
+	\begin{lemma}
+		\label{lem:sigma-very-successful-multi}
+		For all $k>0$,
+		\begin{equation}
+			\dfrac{1}{\sigma_k} \leq \left[1-\eta_2 - \eta_0 - \dfrac{\wgaugbound}{2}\right]\dfrac{1}{\alpha_n^k L(1+\tilde{\lambda}_k)} \implies \rho_k\geq \eta_2,
+		\end{equation} 
+		with $\tilde{\lambda}_k = \umixk{k}^2\phi_k^2+\umixk{k}^2\phi_k + \umixk{k}\phi_k +2\umixk{k}+\umixk{k}^2$.
+	\end{lemma}
+	
+	\begin{proof}
+		Same proof as for Lemma~\ref{lem:sigma-very-successful-inexact-sum} by replacing $\delta$ by $\dmixk{k}$.
+	\end{proof}
+
+	\begin{lemma}
+		\label{lem:sigma_max_mp}
+		For all $k>0$,
+		\begin{equation}
+			\sigma_k \leq \tilde{\sigma}_{max} =  \dfrac{\gamma_3 \alpha_n^{max}L(1+\tilde{\lambda}_{max})}{ 1-\eta_2 - \eta_0 - \dfrac{\wgaugbound}{2}},
+		\end{equation}
+		with $\alpha_n^{max}$ being $\alpha_n$ defined with $\pi_1$ the lowest precision level, 
+		\begin{equation*}
+			\tilde{\lambda}_{max} = \left((1-\umixk{max})\dfrac{\kappa_\mu}{\umixk{max}}\right)^2 + (1-\umixk{max})\dfrac{\kappa_\mu}{\umixk{max}} +\umixk{max}.
+		\end{equation*}
+		\begin{equation*}
+			\umixk{max} = 2u_{max}+u_{max}^2,
+		\end{equation*} and $u_{max}$ the machine precision related to the lowest precision level.
+	\end{lemma}
+	\begin{proof}
+		One has, for all $k$, $\alpha_n^k \leq \alpha_n^{max}$ and $\lambda_{max} \leq \lambda_k$ (see proof of Lemma~\ref{lem:sigma_max} for details). The inequality stated by the Lemma is straightforward from Lemma~\ref{lem:sigma-very-successful-multi} and \eqref{eq:sigma_update_multi}.
+	\end{proof}
+
+	\begin{theorem}
+		\label{th:complexity_mp}
+		If the stopping conditions at Steps 2 and 3 are not met, Algorithm~\ref{alg:qrmp} needs at most
+		\begin{equation*}
+			\epsilon^{-2}\kappa_s(f(x_0)-\kappa_{low}),
+		\end{equation*}
+		successful iterations, with 
+		\begin{equation}
+			\kappa_s=\alpha_n^{max}\tilde{\sigma}_{max}(1+\wgaugbound)^2 \dfrac{1}{\eta_1-2\eta_0}\left(\dfrac{1+\gamma_n^{max}}{1-\gamma_{n+1}^{max}}\right)^2,
+		\end{equation} $\gamma_{n}^{max}$ being $\gamma_{n}$ defined with the machine precision of $\pi_1$, and at most  
+		\begin{equation*}
+			\epsilon^{-2}\kappa_s(f(x_0)-\kappa_{low}) \left(1+\dfrac{|\log(\gamma_1)|}{\log(\gamma_2)}\right) +\dfrac{1}{\log(\gamma_2)}\log\left(\dfrac{\tilde{\sigma}_{max}}{\sigma_0}\right)
+		\end{equation*}
+		iterations to provide an iterate $x_k$ such that $\nabla f(x_k)\leq \epsilon$.
+	\end{theorem}
+	
+	
+	\section{Numerical Results}
+	
+	TODO
+	\bibliographystyle{plain}
+	\bibliography{ref}
+	
+\end{document}

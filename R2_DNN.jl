@@ -1,4 +1,10 @@
-#Ros(x) = (1-x[1])^2 + (x[2]-x[1]^2)^2 ---- If test needed on a basic function
+#Ros(x) = (1-x[1])^2 + (x[2]-x[1]^2)^2 #---- If test needed on a basic function
+
+using LinearAlgebra
+using ForwardDiff
+
+
+
 function R2_DNN(x, obj, maxiterations)
 
     ## This function takes as input an initial point and the objective function to minimize 
@@ -17,14 +23,14 @@ function R2_DNN(x, obj, maxiterations)
     ck=copy(xk)
     fk=obj(xk)
     gk=ForwardDiff.gradient(obj,xk)
-    σk = 2^round(log2(norm(gk)+1)) # La puissance de 2 plus proche de la norme de gk
+    σk = 2^round(log2(norm(gk)+1)) # The closest exact-computed power of 2 from gk
     
 
     #T=obj(xk)+gk'*sk
     #m=T+norm(sk)^2*σk*1/2
 
     iter=0
-    while !((norm(gk)<ϵ) | (iter>maxiterations)) #rajouter erreur relative
+    while !((norm(gk)<ϵ) | (iter>maxiterations)) 
         sk=-gk/σk 
         if norm(sk)<eps()
             @warn "Stop because the step is lower than machine precision"

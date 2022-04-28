@@ -1,0 +1,553 @@
+ \documentclass[runningheads,orivec,oribibl]{llncs}
+
+\usepackage{lncspaper}
+\usepackage[nameinlink]{cleveref}
+
+\spnewtheorem{assumption}{Assumption}{\bfseries}{\itshape}
+\def\algorithmautorefname{Algorithm}
+\def\assumptionautorefname{Assumption}
+
+% For the Cahier du GERAD.
+%\renewcommand{\year}{2020}     % If you don't want the current year.
+\newcommand{\cahiernumber}{00}  % Insert your Cahier du GERAD number.
+
+% For debugging.
+%\usepackage{showframe}
+
+%% The lineno packages adds line numbers. Start line numbering with
+%% \begin{linenumbers}, end it with \end{linenumbers}. Or switch it on
+%% for the whole article with \linenumbers after \end{frontmatter}.
+\usepackage{lineno}
+\renewcommand{\linenumbersep}{40pt}
+
+\usepackage[right,marginal]{showlabels}             \renewcommand{\showlabelfont}{\ttfamily\scriptsize\color{gray}}
+
+% For final version.
+%\usepackage{butterma}
+%\idline{J.~Doe and E.~Muster (Eds.): Perfect Publishing, LNCS 9999}
+%\setcounter{page}{101}
+
+% if you have landscape tables
+%\usepackage[figuresright]{rotating}
+
+\title{%
+ Adaptive Regularization with Inexact Gradients
+}
+\titlerunning{%
+  Inexact Regularization
+}
+\author{
+  Tiphaine Bonniot de Ruisselet\inst{2}%
+  \and
+  Dominique Orban\inst{1,2}%
+  \thanks{Research partially supported by NSERC Discovery Grant 299010-04.}
+}
+\institute{
+  Department of Mathematics and Industrial Engineering,
+  \'Ecole Polytechnique,
+  Montr\'eal, QC, Canada.
+  \and
+  GERAD, Montr\'eal, QC, Canada.
+  \mailto{dominique.orban@gerad.ca}
+}
+\authorrunning{Bonniot, Orban}
+
+% Meta-information for the PDF file generated.
+\pdfinfo{/Author (Tiphaine Bonniot de Ruisselet and Dominique Orban)
+         /Title (Adaptive Regularization with Inexact Gradients)
+         /Keywords (adaptive regularization, inexact gradient)}
+
+% For final version, set paper format.
+%\pdfpagesattr{/CropBox [92 112 523 778]} % LNCS page: 152x235 mm
+
+\begin{document}
+
+\linenumbers
+
+\pagestyle{myheadings}
+
+\maketitle
+\thispagestyle{mytitlepage}   % Cahier du GERAD.
+%\thispagestyle{electronic}   % Published version.
+
+% \begin{abstract}
+% TODO
+%   We describe a linesearch-based damped limited-memory \linebreak BFGS method for unconstrained optimization that accommodates inexact objective function values and gradients.
+%   We assume that the accuracy of the objective value and gradient can be selected, but do not require errors to converge to zero.
+% %   We establish global convergence and optimal iteration complexity.
+%   \smarttodo{finish abstract}
+% \end{abstract}
+
+% \keywords{adaptive regularization, inexact gradient}
+
+% Pour le cahier du GERAD.
+%\begin{resume}
+%
+%\end{resume}
+%\textbf{Mots cl\'es :}
+
+%========================================================================
+
+%% INSTRUCTIONS
+%%
+%% 1 sentence = 1 line without breaks, except for displayed equations
+
+\section{Introduction}
+\label{sec:introduction}
+
+We consider the problem
+\begin{equation}
+  \label{eq:unc}
+  \minimize{x \in \R^n} \ f(x),
+\end{equation}
+where \(f : \R^n \to \R\) is continuously differentiable.
+
+We consider the situation where it is possible to evaluate approximations of \(\nabla f(x)\).
+Typically the cost of such approximations increases with the quality of the approximation.
+% More specifically, it is possible to obtain \(\bar{f}(x, \omega_f) \approx f(x)\) with a user-specified error threshold \(\omega_f > 0\), i.e.,
+% \smarttodo{should it be relative?}
+% \begin{equation}
+%   \label{eq:f-error}
+%   |\bar{f}(x, \omega_f) - \bar{f}(x, 0)| \leq \omega_f,
+%   \quad \text{with} \
+%   \bar{f}(x, 0) = f(x).
+% \end{equation}
+More specifically, we assume that it is possible to obtain \(g(x, \omega_g) \approx \nabla f(x)\) using a user-specified relative error threshold \(\omega_g > 0\), i.e.,
+\begin{equation}
+  \label{eq:g-error}
+  \|g(x, \omega_g) - g(x, 0)\| \leq \omega_g \|g(x, \omega_g)\|,
+  \quad \text{with} \ g(x, 0) = \nabla f(x).
+\end{equation}
+
+% \subsection*{Related Research}
+% TODO
+% Cite the most relevant references, summarize what their approach and contributions are, and indicate how your method differs.
+%
+% \smarttodo{write a literature review}
+%
+% % \cite{cartis-sampaio-toint-2015}
+%
+% % \cite{albaali-2014}
+%
+% % \cite{xie-byrd-nocedal-2019}
+%
+% % \cite{gratton-toint-2018}
+%
+% % \cite{conn-gould-toint-2000}
+%
+% % \subsection*{Notation}
+
+We use Householder notation throughout: capital Latin letters such as \(A\), \(B\), and \(H\), represent matrices, lowercase Latin letters such as \(s\), \(x\), and \(y\) represent vectors in \(\R^n\), and lowercase greek letter such as \(\alpha\), \(\beta\) and \(\gamma\) represent scalars.
+% Considering a vector $s \in \mathbb{R}^n$, we define its orthogonal complement $s^{\perp}$ to be
+% \begin{equation*}
+%   s^{\perp} = \{x \in \mathbb{R}^n : s^Tx = 0 \}.
+% \end{equation*}
+
+%========================================================================
+
+\section{Background and Assumptions}
+\label{sec:background}
+
+% \begin{itemize}
+%   \item background on adaptive regularization;
+%   \item our assumptions.
+% \end{itemize}
+
+\subsection{Assumptions}
+
+% \smarttodo{rewrite our assumptions}
+
+\begin{assumption}
+  \label{ass:f-bounded}
+  The function \(f\) is bounded below on \(\R^n\), i.e., there exists \(\kappa_{\text{low}}\) such that \(f(x) \geq \kappa_{\text{low}}\) for all \(x \in \R^n\).
+\end{assumption}
+
+\begin{assumption}
+  \label{ass:f-C1}
+  The function \(f\) is continuously differentiable over \(\R^n\).
+\end{assumption}
+
+\begin{assumption}
+  \label{ass:g-lipschitz}
+  The gradient of \(f\) is Lipschitz continuous, i.e., there exists \(L > 0\) such that for all \(x\), \(y \in \R^n\), \(\|\nabla f(x) - \nabla f(y)\| \leq L \, \|x - y\|\).
+\end{assumption}
+
+% \autoref{ass:g-lipschitz}
+
+\subsection{Background on adaptive regularization}
+
+Consider the problem~(\ref{eq:unc}).
+Let \(T(x,s)\) be the Taylor series of the function \(f(x+s)\) at \(x\) truncated at the first order, i.e.
+
+\begin{equation*}
+  T(x,s) = f(x) + \nabla f(x)^{T}s.
+\end{equation*}
+
+ From \cite{birgin-gardenghi-martinez-santos-toint-2017}, we recall the following results implied by Taylor's theorem.
+
+ For all \(x,s \in \R^n\),
+
+\begin{equation}
+  \label{eq:taylor-f-error}
+  f(x+s)-T(x,s) \leq \tfrac{1}{2}L\|s\|^2,
+\end{equation}
+\smarttodo{is it really 1/2 ?}
+
+\begin{equation}
+  \label{eq:taylor-g-error}
+  \|\nabla f(x+s) - \nabla_s T(x,s)\| \leq L\|s\|,
+\end{equation}
+where \(L\) is the Lipschitz constant presented in~(\autoref{ass:g-lipschitz}).
+
+This leads to considering at each iteration \(k\) the approximate Taylor series using the inexact gradient defined in \ref{eq:g-error}.
+
+\begin{equation*}
+  \bar{T}_k (s) = f(x_k) + g(x_k,\omega_g^k)^T s.
+\end{equation*}
+The inequality (\ref{eq:taylor-f-error}), the Cauchy-Schwarz inequality and the tolerance on the inexact gradient (\ref{eq:g-error}) imply that, at each iteration \(k\) and for all \(s \in \R^n\),
+
+\begin{align}
+  \label{eq:inexact-taylor-f-error}
+  |f(x_k+s)-\bar{T}_k(s)|
+  & \leq |f(x_k+s) - T(x_k,s)| + |T(x_k,s) - \bar{T}_k(s)| \nonumber \\
+  & \leq |f(x_k+s) - T(x_k,s)| + |\nabla f(x_k)^Ts - g(x_k,\omega_g^k)^Ts|
+  \nonumber \\
+  & \leq \tfrac{1}{2}L\|s\|^2 + \|\nabla f(x_k) - g(x_k,\omega_g^k)\| \ \|s\| \nonumber \\
+  & \leq \tfrac{1}{2}L\|s\|^2 + \omega_g^k \|g(x_k,\omega_g^k)\| \ \|s\|.
+\end{align}
+Similarly, using the inequality (\ref{eq:taylor-g-error}) and the tolerance on the inexact gradient (\ref{eq:g-error}), we have
+
+\begin{align}
+  \label{eq:inexact-taylor-g-error}
+  \|\nabla f(x_k+s) - \nabla_s \bar{T}_k(s)\|
+  \leq & \|\nabla f(x_k+s) - \nabla_s T(x_k,s)\| + \|\nabla_s T(x_k,s) - \nabla_s \bar{T}_k(s)\| \nonumber \\
+  \leq &\|\nabla f(x_k+s) - \nabla_s T(x_k,s)\| + \|\nabla f(x_k) - g(x_k,\omega_g^k)\| \nonumber \\
+  \leq &L\|s\| + \omega_g^k \|g(x_k,\omega_g^k)\|.
+\end{align}
+
+\noindent In order to describe our algorithm, we also define the approximate regularized Taylor series
+
+\begin{equation}
+  \label{eq:model}
+  m_k(s) = \bar{T}_k(s)+\tfrac{1}{2}\sigma_k\|s\|^2,
+\end{equation}
+whose gradient is
+
+\begin{equation*}
+  \nabla_s m_k(s)= \nabla_s \bar{T}_k(s) +\sigma_k s = g(x_k,\omega_g^k) + \sigma_k s,
+\end{equation*}
+
+\noindent where \(\sigma_k\) is the regularization factor updated at each iteration according to the algorithm's mechanisms described in \autoref{sec:algorithm}.
+
+%========================================================================
+
+\section{Complete Algorithm}
+\label{sec:algorithm}
+
+We summarize the complete process as \autoref{alg:regularization-inexact}.
+
+\begin{algorithm}[H]
+  \caption{Adaptive Regularization with inexact gradients}
+  \label{alg:regularization-inexact}
+  \begin{algorithmic}[1]
+    \Require \(x_0 \in \R^n\)
+
+    \State Choose the accuracy level \(\epsilon > 0\), the initial regularization parameter \(\sigma_0 > 0\), and the constants \(\eta_1, \eta_2, \gamma_1, \gamma_2, \gamma_3 \ \text{and} \ \sigma_{\min}\) such that
+    \begin{equation}
+      \label{ar:parameters}
+      \sigma_{\min} \in~]0,\sigma_0], \;
+      0<\eta_1 \leq \eta_2<1 \; \text{and} \;
+      0<\gamma_1<1<\gamma_2<\gamma_3.
+    \end{equation}
+    Set \(k = 0\).
+
+    \State Choose \(\omega_g^k\) such that \(0 < \omega_g^k \leq \tfrac{1}{\sigma_k}\) and compute \(g(x_k,\omega_g^k)\) such that (\ref{eq:g-error}) holds.
+    If \(\|g(x_k,\omega_g^k)\|\leq \frac{\epsilon}{1+\omega_g^k}\), terminate with the approximate solution \(x_{\epsilon} = x_k\).
+
+    \State Compute the step \(s_k = -\frac{1}{\sigma_k}g(x_k,\omega_g^k)\).
+
+    \State Evaluate $f(x_k+s_k)$ and define
+    \begin{equation}
+      \label{ar:ratio}
+      \rho_k = \frac{f(x_k)-f(x_k+s_k)}{\bar{T}_k(0)-\bar{T}_k(s_k)} = \frac{f(x_k)-f(x_k+s_k)}{\frac{1}{\sigma_k}\|g(x_k,\omega_g^k)\|^2}.
+    \end{equation}
+    If \(\rho_k \geq \eta_1\), then define \(x_{k+1} = x_k + s_k\).
+    Otherwise, define \(x_{k+1} = x_k\).
+
+    \State Set
+    \begin{equation}
+      \label{ar:update}
+      \sigma_{k+1} \in
+      \begin{cases}
+        [\max(\sigma_{\min}, \gamma_1\sigma_k), \sigma_k]
+        &\text{ if } \rho_k \geq \eta_2, \\
+        [\sigma_k, \gamma_2\sigma_k]
+        &\text{ if } \rho_k \in [\eta_1, \eta_2[, \\
+        [\gamma_2\sigma_k, \gamma_3\sigma_k]
+        &\text{ if } \rho_k < \eta_1. \\
+      \end{cases}
+    \end{equation}
+    Increment \(k\) by one and go to step~2 if \(\rho_k \geq \eta_1\) or to step~3 otherwise.
+  \end{algorithmic}
+\end{algorithm}
+
+Note that the tolerance (\ref{eq:g-error}) imposed on the relative error on the gradient insures that at each iteration \(k\)
+\begin{equation*}
+  \|\nabla f(x_k)\| \leq \|\nabla f(x_k)-g(x_k,\omega_g^k)\| + \|g(x_k,\omega_g^k)\| \leq (1+\omega_g^k)\|g(x_k,\omega_g^k)\|.
+\end{equation*}
+
+Thus when the termination occurs,
+\(\|g(x_k,\omega_g^k)\|\leq \tfrac{1}{1+\omega_g^k} \epsilon\), hence \(\|\nabla f(x_\epsilon)\|\leq \epsilon\) and the first order critical point \(x_\epsilon\) satisfies the desired accuracy.
+
+%========================================================================
+
+\section{Convergence and Complexity Analysis}
+
+\label{sec:convergence}
+
+The following is the adaptation of the general properties presented by \cite{birgin-gardenghi-martinez-santos-toint-2017} to a second order model with inexact gradients.
+
+% Following their analysis presented, we first derive a result on the model decrease (see \cite[Lemma~2.1]{birgin-gardenghi-martinez-santos-toint-2017}).
+%
+% \begin{lemma}
+%   \label{lem:model-decrease}
+%   Let \(f : \R^n \to \R\) be continuously differentiable, for all \(k \geq 0\),
+%   \begin{equation*}
+%     \bar{T}_k(0) - \bar{T}_k(s_k) \geq \frac{\sigma_k}{2}\|s_k\|^2 = \frac{\|g(x_k,\omega_g^k)\|^2}{2\sigma_k}.
+%   \end{equation*}
+% \end{lemma}
+%
+% \begin{proof}
+%   By definition of the model (\ref{eq:model}) and since \(s_k\) minimizes the model at \(x_k\),
+%
+%   \begin{equation*}
+%     0 \leq m_k(0) - m_k(s_k) = \bar{T}_k(0) - \bar{T}_k(s_k) - \frac{\sigma_k}{2}\|s_k\|^2.
+%   \end{equation*}
+%
+%   Moreover, the optimality condition \(\nabla_s m_k = 0\) implies that
+%
+%   \begin{equation*}
+%     \|s_k\| = \left\lVert-\frac{1}{\sigma_k}g(x_k,\omega_g^k)\right\rVert = \frac{1}{\sigma_k}\|g(x_k,\omega_g^k)\|.
+%   \end{equation*}
+%   \qed
+% \end{proof}
+% As a result, we obtain that the quotient \(\rho_k\) (\ref{ar:ratio}) is well defined at each iteration.
+
+We deduce from \cite[Lemma~2.2]{birgin-gardenghi-martinez-santos-toint-2017} an upper bound on the regularization parameter \(\sigma_k\).
+
+\begin{lemma}
+  \label{lem:sigma-bounded}
+  For all \(k \geq 0\),
+  \begin{equation*}
+    \sigma_k \leq \sigma_{\max} = \max
+    \left[\sigma_0, \frac{\gamma_3 (\tfrac{1}{2}L+1)}{1-\eta_2} \right].
+  \end{equation*}
+\end{lemma}
+
+\begin{proof}
+  Using the definition of $\rho_k$~(\ref{ar:ratio}), and the fact that the error on the inexact Taylor series is bounded~(\ref{eq:inexact-taylor-f-error}), we may deduce that
+
+  \begin{equation*}
+    |\rho - 1| = \frac{|f(x_k+s_k) - \bar{T}_k(s_k)|}{|\bar{T}_k(0)-\bar{T}_k(s_k)|} \leq \frac{ \tfrac{1}{2} L + \omega_g^k\sigma_k}{\sigma_k}.
+  \end{equation*}
+  Since we require in step~2 that the tolerance on the inexact gradient \(\omega_g^k\) be less or equal to \(\tfrac{1}{\sigma_k}\), it comes
+
+  \begin{equation*}
+    |\rho - 1| \leq \frac{\tfrac{1}{2} L + 1}{\sigma_k}.
+  \end{equation*}
+  Now assume that
+
+  \begin{equation*}
+    \sigma_k \geq \frac{\tfrac{1}{2}L+1}{1-\eta_2}.
+  \end{equation*}
+  We obtain from the two previous inequalities that
+
+  \begin{equation*}
+    |\rho_k-1| \leq 1-\eta_2 \text{ and thus } \rho_k \geq \eta_2.
+  \end{equation*}
+  Then the iteration \(k\) is very successful in that \(\rho_k \geq \eta_2\) and \(\sigma_{k+1} \leq \sigma_k\).
+  As a consequence, the mechanism of the algorithm ensures that \autoref{lem:sigma-bounded} holds.
+\qed
+\end{proof}
+We then recall the result presented in \cite[Lemma~2.4]{birgin-gardenghi-martinez-santos-toint-2017} that bounds the number of unsuccessful iterations as a function of the number of successful ones.
+
+\begin{lemma}
+  \label{lem:k-bounded}
+  For all \(k\geq 0\),
+  \begin{equation}
+    k \leq |S_k| \left( 1+\frac{|\log\gamma_1|}{\log\gamma_2} \right) + \frac{1}{\log\gamma_2} \log \left( \frac{\sigma_{\max}}{\sigma_0} \right).
+  \end{equation}
+  where \(S_k = \{0\leq j \leq k \mid \rho_j \geq \eta_1\}\) denotes the set of ``successful'' iterations between \(0\) and \(k\).
+\end{lemma}
+
+\begin{proof}
+
+  (See \cite[Lemma~2.4]{birgin-gardenghi-martinez-santos-toint-2017}.)
+  We also denote by \(U_k\) its complement in \(\{1,...,k\}\), which corresponds to the index set of ``unsuccessful'' iterations between \(0\) and \(k\).
+  The regularization parameter update (\ref{ar:update}) gives that, for each \(k \geq 0\),
+
+  \begin{equation*}
+    \gamma_1\sigma_j \leq \max[\gamma_1\sigma_j,\sigma_{\min}]
+    \leq \sigma_{j+1}, \quad j \in S_k, \quad
+    \text{and} \quad \gamma_2\sigma_j \leq \sigma_{j+1}, \quad j \in U_k.
+  \end{equation*}
+  Thus we deduce inductively that
+  \begin{equation*}
+    \sigma_0\gamma_1^{|S_k|}\gamma_2^{|U_k|} \leq \sigma_k.
+  \end{equation*}
+  Therefore, using \autoref{lem:sigma-bounded}, we obtain
+
+  \begin{equation*}
+    |S_k|\log\gamma_1 + |U_k|\log\gamma_2 \leq \log\left( \frac{\sigma_{\max}}{\sigma_0}\right),
+  \end{equation*}
+  which then implies that
+
+  \begin{equation*}
+    |U_k|\leq -|S_k|\frac{\log\gamma_1}{\log\gamma_2}
+    +\frac{1}{\log\gamma_2} \log \left(\frac{\sigma_{\max}}{\sigma_0}\right),
+  \end{equation*}
+  since \(\gamma_2 > 1\).
+  The desired result then follows from the equality \(k = |S_k|+|U_k|\) and the inequality \(\gamma_1 < 1\) given by (\ref{ar:parameters}).
+  \qed
+
+\end{proof}
+Using all the above results, we are now in position to state our main evaluation complexity result.
+
+\begin{theorem}
+  Let \autoref{ass:f-bounded}, \autoref{ass:f-C1} and \autoref{ass:g-lipschitz} be satisfied.
+  Assume \(\omega_g^k \leq 1/\sigma_k\) for all \(k \geq 0\).
+  Then, given \(\epsilon > 0\), \autoref{alg:regularization-inexact} needs at most
+
+  \begin{equation*}
+    \left\lfloor\kappa_s \frac{f(x_0)-f_\mathrm{low}}{\epsilon^2}\right\rfloor
+  \end{equation*}
+  successful iterations (each involving one evaluation of \(f\) and its approximate derivative) and at most
+
+  \begin{equation*}
+    \left\lfloor
+    \kappa_s \frac{f(x_0)-f_\mathrm{low}}{\epsilon^2}
+    \right\rfloor
+    \left( 1+\frac{|\log \gamma_1|}{\log \gamma_2} \right) +
+    \frac{1}{\log\gamma_2}
+    \log \left( \frac{\sigma_{\max}}{\sigma_0}\right)
+  \end{equation*}
+  iterations in total to produce an iterate \(x_{\epsilon}\) such that
+  \(\|\nabla f(x_{\epsilon})\| \leq \epsilon, \ \text{where} \ \sigma_{\max}\) is given by \autoref{lem:sigma-bounded} and where
+
+  \begin{equation*}
+    \kappa_s =\frac{(1+\sigma_{\max})^2}{\eta_1\sigma_{\min}}.
+  \end{equation*}
+
+\end{theorem}
+
+\begin{proof}
+At each successful iteration, we have
+
+\begin{align*}
+  f(x_k) - f(x_k+s_k)
+  & \geq \eta_1(\bar{T}_k(0)-\bar{T}_k(s_k)) \\
+  & \geq \frac{\eta_1}{\sigma_k}\|g(x_k,\omega_g^k)\|^2 \\
+  & \geq \frac{\eta_1\sigma_{\min}}{(1+\sigma_{\max})^2}\epsilon^2
+\end{align*}
+where we used (\ref{ar:ratio}) and the fact that before termination
+\begin{equation*}
+  \|g(x_k,\omega_g^k)\|
+  \geq \frac{1}{1+\omega_g^k} \epsilon
+  \geq \frac{1}{1+ \frac{1}{\sigma_k}} \epsilon
+  \geq \frac{\sigma_k}{1+\sigma_k} \epsilon
+  \geq \frac{\sigma_{\min}}{1 + \sigma_{\max}}\epsilon.
+\end{equation*}
+Thus we deduce that as long as termination does not occur,
+
+\begin{equation}
+  f(x_0)-f(x_{k+1}) = \sum_{j\in S_k}[f(x_j)-f(x_j+s_j)]\geq \frac{|S_k|}{\kappa_s}\epsilon^2,
+\end{equation}
+from which the desired bound on the number of successful iterations follows.
+\autoref{lem:k-bounded} is then invoked to compute the upper bound on the total of iterations.
+\qed
+
+\end{proof}
+
+%========================================================================
+
+\section{Implementation and Numerical Results}
+\label{sec:implementation}
+
+The \autoref{alg:regularization-inexact} was tested using the collection of unconstrained optimization problems available in the package \texttt{OptimizationProblems.jl}.
+The objective function and its exact derivative were evaluated using the \texttt{NLPModels.jl} package.
+Yet, the aim of the algorithm is to compute an approximate solution of the optimization problem based on a partial knowledge of the gradient.
+To that end, we chose to add some noise to the derivative furnished by \texttt{NLPModels.jl} as follows.
+
+At each iteration \(k\), we choose \(u_k\) is a unit random vector and \(\lambda_k > 0\) a scalar such that
+\begin{equation}
+  \label{eq:lambda}
+  \lambda_k = \frac{\omega_g^k}{1+\omega_g^k}\|\nabla f(x_k)\|.
+\end{equation}
+
+\noindent From which we compute the inexact gradient
+\begin{equation}
+  g(x_k,\omega_g^k) = \nabla f(x_k) + \lambda_k u_k.
+\end{equation}
+
+\noindent Since $(1+\omega_g^k) \lambda_k = \omega_g^k \|\nabla f(x_k)\|$, we have
+
+\begin{equation*}
+  \lambda_k =
+  \omega_g^k(\|\nabla f(x_k)\| - \lambda_k)
+  \leq \omega_g^k\|\nabla f(x_k) + \lambda_k u_k\| = \omega_g^k \|g(x_k,\omega_g^k)\|.
+\end{equation*}
+
+\noindent Therefore choosing $\lambda_k$ as in (\ref{eq:lambda}) insures that the relative error on the gradient does not exceed the imposed tolerance (\ref{eq:g-error}).
+
+
+% TODO
+% \begin{itemize}
+%   \item describe Julia implementation;
+%   \item brief explanation of the JSO packages used;
+%   \item values of algorithmic parameters, choice of accuracy tolerances, stopping conditions, etc.;
+%   \item description and size of test problems;
+%   \item etc.
+% \end{itemize}
+
+%========================================================================
+
+% \section{Discussion}
+% \label{sec:discussion}
+%
+% TODO
+
+% A discussion is better than conclusions.
+% Contrast your finding with those from the literature and justify the statements you made in the abstract and introduction.
+% Finish with a brief statement of future work.
+
+%========================================================================
+
+% \section{Notes}
+% \label{sec:notes}
+
+% You can keep notes in this section and remove the section altogether when you are ready to submit.
+
+% Using Natbib with author-year style, you can work citations into your sentences.
+% For example, \cite{wright-orban-2002} study the existence of the central path   under the Mangasarian-Fromovitz constraint qualification.
+
+%========================================================================
+
+%% The Appendices part is started with the command \appendix;
+%% appendix sections are then done as normal sections
+%% \appendix
+
+%% \section{}
+%% \label{}
+
+%========================================================================
+
+\bibliographystyle{abbrvnat}
+\bibliography{regularization-inexact}
+
+\newpage
+
+\hypertarget{contents}{}  % so clicking on [toc] in the header leads here
+\tableofcontents
+\listoftodos
+
+\end{document}

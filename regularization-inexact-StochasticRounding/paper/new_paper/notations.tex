@@ -1,0 +1,30 @@
+%%%%%%%%%%% misc %%%%%%%%%%%%
+\DeclareMathOperator*{\argmin}{argmin}
+\newcommand{\minu}[1]{\min_{#1}}
+\newcommand{\argminu}[1]{\argmin_{#1}}
+\newcommand{\set}[1]{\mathbb{#1}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+
+%%%%%%%%%%% precision/error %%%%%%%%%%%%
+\newcommand{\ffp}{\hat{f}} % finite precision computation of f
+\newcommand{\gd}{\tilde{g}} % exact descent direction
+\newcommand{\skfp}[1]{\hat{s}_{#1}} % computed step
+\newcommand{\ef}{\omega_f} %  |f(x)-\ffp(x)| < \ef
+\newcommand{\eg}{\omega_g} % ||df(x)-g(x)| < \eg||g(x)||
+\newcommand{\egd}{\tilde{\omega}_g} % \egd = (\eg+u)/(1-u)
+\newcommand{\approxT}{\bar{T}} % order 1 taylor serie with g
+\newcommand{\fl}[1]{fl\left(#1\right)} % finite precision computation
+\newcommand{\pseudom}{\tilde{m}} % pseudo model
+\newcommand{\pseudoT}{\tilde{T}} % pseudo taylor serie
+\newcommand{\tsdifffp}{\widehat{\Delta T}} % finite precision computation of approximated taylor diff 
+\newcommand{\tsdiffpseudo}{\Delta \pseudoT} % pseudo taylor serie decrease
+\newcommand{\wgaugbound}{\kappa_\mu} % bound on \mu 
+\newcommand{\wgaugboundmp}[1]{\kappa_{\mu^{#1}}} % bound on \mu^k multi precision case
+\newcommand{\xpreck}[1]{\pi_{#1}^x}
+\newcommand{\fpreck}[1]{\pi_{#1}^f}
+\newcommand{\cpreck}[1]{\pi_{#1}^c}
+\newcommand{\fprecrecompk}[1]{\pi_{#1}^{f^-}}
+\newcommand{\gpreck}[1]{\pi_{#1}^g}
+\newcommand{\dmixk}[1]{\tilde{\delta}_{#1}}
+\newcommand{\umixk}[1]{\tilde{u}_{#1}}

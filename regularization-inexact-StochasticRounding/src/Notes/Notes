@@ -1,0 +1,10 @@
+    # M(s)'=0 , s = -(1/σ) ∇fx
+    # f(x+s)= f(x) + ∇fx*s   (scalar product)  # print the s, x to examine
+    # M(s) = = f(x) + ∇fx*s  
+    # grad(M,s) = 0 +  ∇fx
+
+    # M(s)= f(x) + ∇fx*s +(σ/2)( sTs) quadratic model 
+    #grad(M,s) = 0 +∇fx  + σ* s =0  # sigma helps us estimate second order derivayive of f
+    # s = -∇fx/σ
+
+    # so if we accept the step, we allow ourselves to take larger steps
