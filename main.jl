@@ -1,6 +1,6 @@
 #TODO all the import 
 using printf
-
+include("R2_DNN.jl")
 #TODO check this https://github.com/farhadrclass/regularization-inexact/blob/StochasticRounding/src/runAll.jl
 #TODO that code runs many times, you only need too run it once 
 
