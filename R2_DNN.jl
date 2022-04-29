@@ -1,57 +1,60 @@
-#Ros(x) = (1-x[1])^2 + (x[2]-x[1]^2)^2 #---- If test needed on a basic function
-
-# TODO  No comment before libraries 
-using LinearAlgebra
-using ForwardDiff
-
-#TODO
 " 
-    What it does
-    Input: (type)
-    Output: (type )
+    Solves the optimization problem min(f(x)) with quadratic regularization
+    Input: (x::Vector, f::function to minimize, maxiterations::Int, η1,η2,γ1,γ2,ϵ_abs,ϵ_rel :: Float64, verbose::Bool )
+    Output: (GenericExecutionStats)
 
 "
-
-#TODO read this code https://github.com/farhadrclass/regularization-inexact/blob/StochasticRounding/src/adaptative_regularization.jl
-
-function R2_DNN(x, obj, maxiterations)
-
-    ## This function takes as input an initial point and the objective function to minimize 
-    ## and returns x_opti, f(x_opti) and the number of iterations
-
-    #Initializing the constants of the algorithm
-    η1 = 0.3
-    η2 = 0.7
-    γ1 = 1 / 2
-    γ2 = 2.0
-    ϵ = 10^-8
+function R2(nlp, 
+            maxiterations=10000,
+            η1 = 0.3,
+            η2 = 0.7,
+            γ1 = 1 / 2,
+            γ2 = 2.0,
+            ϵ_abs = 1e-6,
+            ϵ_rel = 1e-6,
+            verbose::Bool = false)
 
     # Initializing the variables
-    xk = copy(x)
+    xk = nlp.meta.x0
     ρk = 0
     ck = copy(xk)
-    fk = obj(xk)
-    gk = ForwardDiff.gradient(obj, xk)
+    fk = obj(nlp, xk)
+    gk = grad(nlp, xk)
+    norm_gk=norm(gk)
     σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
 
+    n=nlp.meta.nvar
+    global iter=1
 
-    #T=obj(xk)+gk'*sk
-    #m=T+norm(sk)^2*σk*1/2
+    # Stopping criterion: 
+    ϵ=ϵ_abs + ϵ_rel*norm_gk
 
-    iter = 0
-    while !((norm(gk) < ϵ) | (iter > maxiterations))
+    if verbose
+        @info @sprintf "%5s  %9s  %7s  %7s " "iter" "f" "‖∇f‖" "σ"
+        infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
+    end
+
+    optimal = norm_gk ≤ ϵ
+    tired = iter > maxiterations
+    start_time = time()
+    elapsed_time = 0.0
+
+    while !(optimal | tired)
+
         sk = -gk / σk
-        if norm(sk) < eps()
-            @warn "Stop because the step is lower than machine precision"
-            break
-        end
+
+        #if norm(sk) < eps()
+            #@warn "Stop because the step is lower than machine precision"
+            #break
+        #end
 
         ck = xk .+ sk
         ΔTk = -gk' * sk
-        fck = obj(ck)
+        fck = obj(nlp, ck)
+
         ρk = (fk - fck) / ΔTk
 
-        # Recomputing if conditions on ρk not achieved
+        # Recomputing if conditions on ρk not reached
         if ρk >= η2
             σk = γ1 * σk
 
@@ -64,20 +67,43 @@ function R2_DNN(x, obj, maxiterations)
         if ρk >= η1
             xk = ck
             fk = fck
-            gk = ForwardDiff.gradient(obj, xk)
+            gk = grad(nlp, xk)
         end
 
         iter += 1
+        optimal = norm_gk ≤ ϵ
+        tired = iter > maxiterations
+
+        elapsed_time += time() - start_time
+
+        if verbose
+            infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time
+            @info infoline
+            infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
+        end
+
+
+
+        global status
+
+        status = if optimal
+            :first_order
+          elseif tired
+            :max_iter
+          else
+            :exception
+          end
+
+
+
     end
-    return (xk, fk, iter)
-    #TODO  read about GenericExecutionStats
-    #     return GenericExecutionStats(
-    #     status,
-    #     nlp,
-    #     solution = x,
-    #     objective = fx,
-    #     dual_feas = ∇fx_norm,
-    #     elapsed_time = elapsed_time,
-    #     iter = iter,
-    #   )
+    
+    return GenericExecutionStats(
+            status,
+            nlp,
+            solution = xk,
+            objective = fk,
+            dual_feas = norm_gk,
+            elapsed_time = elapsed_time,
+            iter = iter)
 end
