@@ -26,6 +26,6 @@ stats = R2(
     2.0,
     1e-6,
     1e-6,
-    false
+    true
 )
 print(stats)
