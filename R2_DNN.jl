@@ -105,5 +105,6 @@ function R2(nlp,
             objective = fk,
             dual_feas = norm_gk,
             elapsed_time = elapsed_time,
-            iter = iter)
+            iter = iter,
+            )
 end
