@@ -68,6 +68,7 @@ function R2(nlp,
             xk = ck
             fk = fck
             gk = grad(nlp, xk)
+            norm_gk=norm(gk)
         end
 
         iter += 1
@@ -77,7 +78,7 @@ function R2(nlp,
         elapsed_time += time() - start_time
 
         if verbose
-            infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time
+            #infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time
             @info infoline
             infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
         end
