@@ -9,7 +9,7 @@ using SolverCore
 include("R2_DNN.jl")
 
 # 2 define a NLP (Problem )
-nlp = ADNLPModel(x -> (1 - x[1])^2 + (x[2] - x[1]^2)^2, [1000.0, -1000.0])
+nlp = ADNLPModel(x -> (1 - x[1])^2 + (x[2] - x[1]^2)^2, [5.0, -3.0])
 
 # Optional turn on/off the table 
 #verbose=true
@@ -24,8 +24,8 @@ stats = R2(
     0.7,
     1/2,
     2.0,
-    1e-6,
-    1e-6,
+    1e-10,
+    1e-10,
     true
 )
 print(stats)
