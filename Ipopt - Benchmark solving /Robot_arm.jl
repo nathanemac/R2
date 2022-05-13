@@ -3,21 +3,6 @@ using JuMP, ADNLPModels, NLPModelsIpopt, NLPModels, Ipopt
 N=99 # number of intervals
 n=N+1 # number of timesteps
 L=4.5 #total length of the robot arm
-# h = 
-
-Np=(0:1:N)
-Nv=(0.5:1:N-0.5)
-Na=(1:1:N-1)    
-
-ρ0=L
-ρN=L
-θ0=0
-θN=2π/3
-ϕ0=π/4
-ϕN=π/4
-ρ_dot0, θ_dot0, ϕ_dot0, ρ_dotN, θ_dotN, ϕ_dotN, ρ_accN, θ_accN, ϕ_accN  = zeros(9)
-
-
 
 # X : vector of variables, of the form : [ρ(t=t1); ρ(t=t2); ... ρ(t=tf), θ(t=t1), ..., then ρ_dot, ..., then ρ_acc, .. ϕ_acc, tf]
 # There are N+1 values of each 9 variables 
@@ -27,12 +12,7 @@ model=Model()
 set_optimizer(model, Ipopt.Optimizer)
 
 
-# initializing X
-X0=zeros(9n+1)
-X0[1]=L
-X0[n+1]=0
-X0[2n+1]=π/4
-X0[end]=1.0
+#bounds
 
 lb_ρ=zeros(n)
 ub_ρ=ones(n)*L
@@ -67,7 +47,65 @@ ub_ρ_acc=ones(n)/L
 @constraint(model, c_ϕ1[i=1:N], ϕ[i+1] <= ϕ[i] + ϕ_dot[i]*tf/N)
 @constraint(model, c_ϕ2[i=1:N], ϕ[i+1] >= ϕ[i] + ϕ_dot[i]*tf/N)
 
-# Todo finir contraintes sur ρ, theta et phi_dot
+    # constrains on initial time and final time
+
+        #on positions
+@constraint(model, c_ρ_0_1, ρ[1] <= L)
+@constraint(model, c_ρ_0_2, ρ[1] >= L)
+@constraint(model, c_ρ_f_1, ρ[end] <= L)
+@constraint(model, c_ρ_f_2, ρ[end] >= L)
+
+@constraint(model, c_θ_0_1, θ[1] <= 0)
+@constraint(model, c_θ_0_2, θ[1] >= 0)
+@constraint(model, c_θ_f_1, θ[end] <= 2π/3)
+@constraint(model, c_θ_f_2, θ[end] >= 2π/3)
+
+@constraint(model, c_ϕ_0_1, ϕ[1] <= π/4)
+@constraint(model, c_ϕ_0_2, ϕ[1] >= π/4)
+@constraint(model, c_ϕ_f_1, ϕ[end] <= π/4)
+@constraint(model, c_ϕ_f_2, ϕ[end] >= π/4)
+
+        #on speeds
+@constraint(model, c_ρ_dot_0_1, ρ_dot[1] <= 0)
+@constraint(model, c_ρ_dot_0_2, ρ_dot[1] >= 0)
+@constraint(model, c_ρ_dot_f_1, ρ_dot[end] <= 0)
+@constraint(model, c_ρ_dot_f_2, ρ_dot[end] >= 0)
+
+@constraint(model, c_θ_dot_0_1, θ_dot[1] <= 0)
+@constraint(model, c_θ_dot_0_2, θ_dot[1] >= 0)
+@constraint(model, c_θ_dot_f_1, θ_dot[end] <= 0)
+@constraint(model, c_θ_dot_f_2, θ_dot[end] >= 0)
+
+@constraint(model, c_ϕ_dot_0_1, ϕ_dot[1] <= 0)
+@constraint(model, c_ϕ_dot_0_2, ϕ_dot[1] >= 0)
+@constraint(model, c_ϕ_dot_f_1, ϕ_dot[end] <= 0)
+@constraint(model, c_ϕ_dot_f_2, ϕ_dot[end] >= 0)
+
+        #on accelerations 
+@constraint(model, c_ρ_acc_0_1, ρ_acc[1] <= 0)
+@constraint(model, c_ρ_acc_0_2, ρ_acc[1] >= 0)
+@constraint(model, c_ρ_acc_f_1, ρ_acc[end] <= 0)
+@constraint(model, c_ρ_acc_f_2, ρ_acc[end] >= 0)
+
+@constraint(model, c_θ_acc_0_1, θ_acc[1] <= 0)
+@constraint(model, c_θ_acc_0_2, θ_acc[1] >= 0)
+@constraint(model, c_θ_acc_f_1, θ_acc[end] <= 0)
+@constraint(model, c_θ_acc_f_2, θ_acc[end] >= 0)
+
+@constraint(model, c_ϕ_acc_0_1, ϕ_acc[1] <= 0)
+@constraint(model, c_ϕ_acc_0_2, ϕ_acc[1] >= 0)
+@constraint(model, c_ϕ_acc_f_1, ϕ_acc[end] <= 0)
+@constraint(model, c_ϕ_acc_f_2, ϕ_acc[end] >= 0)
+
+
+    # constraints on ρ_dot, θ_dot, ϕ_dot
+
+@constraint(model, c_ρ_dot1[i=1:N], ρ_dot[i+1] <= ρ_dot[i] + ρ_acc[i]*tf/N)
+@constraint(model, c_ρ_dot2[i=1:N], ρ_dot[i+1] >= ρ_dot[i] + ρ_acc[i]*tf/N)
+@constraint(model, c_θ_dot1[i=1:N], θ_dot[i+1] <= θ_dot[i] + θ_acc[i]*tf/N)
+@constraint(model, c_θ_dot2[i=1:N], θ_dot[i+1] >= θ_dot[i] + θ_acc[i]*tf/N)
+@constraint(model, c_ϕ_dot1[i=1:N], ϕ_dot[i+1] <= ϕ_dot[i] + ϕ_acc[i]*tf/N)
+@constraint(model, c_ϕ_dot2[i=1:N], ϕ_dot[i+1] >= ϕ_dot[i] + ϕ_acc[i]*tf/N)
 
     # constraints on inertia
         # Iθ
@@ -75,28 +113,17 @@ ub_ρ_acc=ones(n)/L
 @NLconstraint(model, c_θ_acc2[i=1:n], θ_acc[i] >= -1/(((L-ρ[i])^3+ρ[i]^3)/3*sin(ϕ[i]^2)))
 
         # Iϕ todo
+@NLconstraint(model, c_ϕ_acc1[i=1:n], ϕ_acc[i] <= ((L-ρ[i])^3+ρ[i]^3)/3)
+@NLconstraint(model, c_ϕ_acc2[i=1:n], ϕ_acc[i] >= -((L-ρ[i])^3+ρ[i]^3)/3)
 
 
 
-# todo creer fobj et mettre en contrainte les valeurs finales des variables
+# create the objective function
 
+@objective(model, Min, tf)
 
-
-
-
-
-
-
-
-function objective(X)
-    X[end]
-end
-
-function c(X)
-    tf=X[end]
-    c_ρ=[]
-    for i=1:N
-        push!(c_ρ, X[i+1] = X[i] + X[3n+i]*tf/N
+optimize!(model)
+print(model)
 
 
 
