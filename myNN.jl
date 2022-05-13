@@ -37,6 +37,22 @@ function cost(A)
     return cost_value
 end
 
+function curve(A,B,C,xx)
+    l=length(xx)
+    return A .* xx.^2 .+ B.* xx .+ C.*ones(l)
+end
+
+function range_curve(A,B,C,xx)
+    range = zeros(length(xx))
+    l = length(xx)
+    for i = 1:l
+        range[i] += curve(A,B,C,xx[i])[1]
+    end
+    min = minimum(range)
+    max = maximum(range)
+    return min,max
+end
+
 # I chose to build a fully-connected - two hidden layers network. 
 # I want, from a set of coordinates, to predict whose category the point belongs. 
 
@@ -44,13 +60,13 @@ function create_train_dataset(a)
     # create the data set to train the network
     xundertrain = [] # will contain the points under the curve y=2x-1
     xuppertrain = [] # will contain the points upper the curve y=2x-1
-    Xtrainx = rand(-10.0:10.0,a)'
-    Xtrainy = rand(-21.0:19.0,a)'
+    Xtrainx = rand(start:stop,a)'
+    Xtrainy = rand(range_curve(A,B,C,xx)[1]-10:range_curve(A,B,C,xx)[2]+10,a)'
     Xtrain = [Xtrainx;
             Xtrainy]
 
     for i=1:a
-        ((Xtrain[:,i][2] - 2*Xtrain[:,i][1] + 1)<0) ? push!(xundertrain, Xtrain[:,i]) : push!(xuppertrain, Xtrain[:,i])
+        (Xtrain[:,i][2] - curve(A, B, C, Xtrain[:,i][1])[1] < 0) ? push!(xundertrain, Xtrain[:,i]) : push!(xuppertrain, Xtrain[:,i])
     end
 
     X = vcat(xundertrain, xuppertrain)
@@ -105,13 +121,13 @@ function create_test_dataset(b)
 
     xundert = [] # will contain the points under the curve y=2x-1
     xuppert = [] # will contain the points upper the curve y=2x-1
-    Xtestx = rand(-10.0:10.0,b)'
-    Xtesty = rand(-21.0:19.0,b)'
+    Xtestx = rand(start:stop,b)'
+    Xtesty = rand(range_curve(A,B,C,xx)[1]-10:range_curve(A,B,C,xx)[2]+10,b)'
     Xtest = [Xtestx;
             Xtesty]
 
     for i=1:b
-        ((Xtest[:,i][2] - 2*Xtest[:,i][1] + 1)<0) ? push!(xundert, Xtest[:,i]) : push!(xuppert, Xtest[:,i])
+        ((Xtest[:,i][2] - curve(A, B, C, Xtest[:,i][1])[1]) < 0) ? push!(xundert, Xtest[:,i]) : push!(xuppert, Xtest[:,i])
     end
 
     Xundert = zeros(2, length(xundert))
@@ -183,12 +199,13 @@ function stats(Xundert, Xuppert, Yundert, Yuppert, xundert, xuppert)
     return Wrong_under, accuracy_under, Wrong_upper, accuracy_upper
 end
 
-
-
 ###############################################
 
-a = 20 # size of the train set
+a = 50 # size of the train set
 b = 550 # size of the test set
+A,B,C = -2,2,2
+start,stop,ϵ = 0, 15.0, 1e-4
+xx = start:ϵ:stop
 
 XX, y = create_train_dataset(a)
 W1o,W2o,W3o,b1o,b2o,b3o = train_network(a)
@@ -202,15 +219,14 @@ Xundert, Xuppert, Yundert, Yuppert, xundert, xuppert = create_test_dataset(b)
 # Yundert, Yuppert : contain the points predicted as up the curve and predicted as down the curve
 
 
-
 statistics = stats(Xundert, Xuppert, Yundert, Yuppert, xundert, xuppert)
 Wrong_under = statistics[1]
 Wrong_upper = statistics[3]
 
 accuracy = (statistics[2]+statistics[4])/b
 
-xx = -10:1e-3:10
-Plots.plot(xx, 2*xx .- 1, label = "curve")
+xx = start:ϵ:stop
+Plots.plot(xx, curve(A,B,C,xx), label = "curve")
 scatter!(Xundert[1,:], Xundert[2,:], label="under the curve")
 scatter!(Xuppert[1,:], Xuppert[2,:], label="upper the curve")
 scatter!(Wrong_upper[1,:], Wrong_upper[2,:], label = "wrong upper")
