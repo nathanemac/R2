@@ -203,7 +203,7 @@ end
 
 a = 50 # size of the train set
 b = 550 # size of the test set
-A,B,C = -2,2,2
+A,B,C = 2.5,2,20
 start,stop,ϵ = 0, 15.0, 1e-4
 xx = start:ϵ:stop
 

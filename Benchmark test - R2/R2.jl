@@ -2,10 +2,11 @@
     Solves the optimization problem min(f(x)) with quadratic regularization
     Input: (x::Vector, f::function to minimize, maxiterations::Int, η1,η2,γ1,γ2,ϵ_abs,ϵ_rel :: Float64, verbose::Bool )
     Output: (GenericExecutionStats)
-
 "
-function R2(nlp, 
-            maxiterations=10000,
+function R2(
+            nlp;
+            σ_min = nothing,
+            maxiterations=1000,
             η1 = 0.3,
             η2 = 0.7,
             γ1 = 1 / 2,
@@ -15,7 +16,20 @@ function R2(nlp,
             verbose::Bool = false)
 
     # Initializing the variables
-    xk = nlp.meta.x0
+    type = typeof(nlp.meta.x0[1])
+    x0 = copy(nlp.meta.x0)
+    x0 = convert.(type,x0)
+
+    if σ_min === nothing
+        σ_min = eps(type)
+    else 
+        σ_min = convert(type,σ_min)
+    end
+
+    # Initialisation
+    iter=0
+    xk = copy(x0)
+
     ρk = 0
     ck = copy(xk)
     fk = obj(nlp, xk)
@@ -23,40 +37,49 @@ function R2(nlp,
     norm_gk=norm(gk)
     σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
 
-    n=nlp.meta.nvar
-    global iter=1
+    γ1 =  convert.(type,γ1)
+    γ2 =  convert.(type,γ2)
+    σk =  convert.(type,σk)
+
+
 
     # Stopping criterion: 
-    ϵ=ϵ_abs + ϵ_rel*norm_gk
+    ϵ = ϵ_abs + ϵ_rel*norm_gk
+    optimal = norm_gk ≤ ϵ
+    tired = iter > maxiterations
 
     if verbose
         @info @sprintf "%5s  %9s  %7s  %7s " "iter" "f" "‖∇f‖" "σ"
         infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
     end
 
-    optimal = norm_gk ≤ ϵ
-    tired = iter > maxiterations
     start_time = time()
     elapsed_time = 0.0
 
     while !(optimal | tired)
 
-        sk = -gk / σk
+        sk = convert.(type,-gk./σk)
 
-        #if norm(sk) < eps()
-            #@warn "Stop because the step is lower than machine precision"
-            #break
-        #end
+        if norm(sk) < eps(Float16)
+            @warn "Stop because the step is lower than machine precision"
+            status = :small_step
+            break
+        end 
 
         ck = xk .+ sk
         ΔTk = -gk' * sk
         fck = obj(nlp, ck)
+        if fck == -Inf
+            status = :unbounded
+            break
+        end
 
         ρk = (fk - fck) / ΔTk
 
+
         # Recomputing if conditions on ρk not reached
         if ρk >= η2
-            σk = γ1 * σk
+            σk = max(σ_min, γ1 * σk)
 
         elseif ρk < η1
             σk = σk * γ2
@@ -71,6 +94,7 @@ function R2(nlp,
             norm_gk=norm(gk)
         end
 
+
         iter += 1
         optimal = norm_gk ≤ ϵ
         tired = iter > maxiterations
@@ -83,8 +107,6 @@ function R2(nlp,
             infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
         end
 
-
-
         global status
 
         status = if optimal
@@ -94,9 +116,6 @@ function R2(nlp,
           else
             :exception
           end
-
-
-
     end
     
     return GenericExecutionStats(
@@ -109,3 +128,4 @@ function R2(nlp,
             iter = iter,
             )
 end
+

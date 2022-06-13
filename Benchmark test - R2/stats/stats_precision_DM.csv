@@ -1,0 +1,4 @@
+precision,max_iter,exception,first_order,unbounded,underflow,mean_time
+Float16,16,1,33,0,32,0.10098433494567871
+Float32,47,0,9,0,26,0.09364909951279803
+Float64,59,0,6,0,17,0.1594901317503394
