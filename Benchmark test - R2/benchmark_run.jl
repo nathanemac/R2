@@ -16,6 +16,7 @@ using Statistics
 using CSV
 using Plots
 using Profile
+using ProfileView
 
 include("R2.jl")
 include("R2_D.M.jl")
@@ -169,25 +170,5 @@ CSV.write("/Users/nathanallaire/Desktop/GERAD/R2/Benchmark test - R2/stats_iter2
 
 
 
-
-
-################# PROFILE TESTS #######################
-T=Float32
-problems = (eval(problem)(type = Val(T)) for problem ∈ setdiff(names(OptimizationProblems.ADNLPProblems), [:ADNLPProblems]))
-
-ϵ_abs = eps(Float16)^1/3 # done so to have the same ϵ for all the precisions.
-ϵ_rel = eps(Float16)^1/3
-
-P = []
-for p in problems
-  push!(P, @profile R2(p;
-    σ_min = nothing,
-    maxiterations=250,
-    η1 = 1e-4,
-    η2 = 0.75,
-    γ1 = 0.33,
-    γ2 = 2.0,
-    ϵ_abs = ϵ_abs,
-    ϵ_rel = ϵ_rel,
-    verbose = false))
-end
+################################# TIME PROFILE FOR QUADRUPLE PRECISION ######################################
+#TODO do this 

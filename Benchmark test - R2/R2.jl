@@ -99,7 +99,7 @@ function R2(
         optimal = norm_gk ≤ ϵ
         tired = iter > maxiterations
 
-        elapsed_time += time() - start_time
+        elapsed_time = time() - start_time
 
         if verbose
             #infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time

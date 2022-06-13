@@ -5,6 +5,7 @@
 "
 function R2_mp(
             nlp;
+            σ_min = nothing,
             maxiterations=1000,
             η1 = 0.3,
             η2 = 0.7,
@@ -12,52 +13,73 @@ function R2_mp(
             γ2 = 2.0,
             ϵ_abs = 1e-6,
             ϵ_rel = 1e-6,
-            verbose::Bool = false,
-            type::Val{T} = Val(Float64), kwargs...) where {T}
+            verbose::Bool = false)
 
     # Initializing the variables
-    xk = convert(nlp.meta.x0, T)
-    ρk = T(0)
+
+    x0 = copy(nlp.meta.x0)
+    x0 = convert.(Type,x0)
+
+    if σ_min === nothing
+        σ_min = eps(Type)
+    else 
+        σ_min = convert(Type,σ_min)
+    end
+
+    # Initialisation
+    iter=0
+    xk = copy(x0)
+
+    ρk = 0
     ck = copy(xk)
-    fk = convert(T, obj(nlp, xk))
-    gk = convert(T, grad(nlp, xk))
-    norm_gk=T(norm(gk))
-    σk = T(2^round(log2(norm(gk) + 1))) # The closest exact-computed power of 2 from gk
+    fk = obj(nlp, xk)
+    gk = grad(nlp, xk)
+    norm_gk=norm(gk)
+    σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
 
-    n = nlp.meta.nvar
-    global iter=1
+    γ1 =  convert.(Type,γ1)
+    γ2 =  convert.(Type,γ2)
+    σk =  convert.(Type,σk)
 
-    # Stopping criterion:
-    ϵ = convert(T, (ϵ_abs + ϵ_rel*norm_gk))
+
+
+    # Stopping criterion: 
+    ϵ = ϵ_abs + ϵ_rel*norm_gk
+    optimal = norm_gk ≤ ϵ
+    tired = iter > maxiterations
 
     if verbose
         @info @sprintf "%5s  %9s  %7s  %7s " "iter" "f" "‖∇f‖" "σ"
         infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
     end
 
-    optimal = norm_gk ≤ ϵ
-    tired = iter > maxiterations
     start_time = time()
     elapsed_time = 0.0
 
     while !(optimal | tired)
 
-        sk = -gk / σk
+        sk = convert.(Type,-gk./σk)
 
-        if norm(sk) < eps()
-            #@warn "Stop because the step is lower than machine precision"
-            #break
-        end
+        if norm(sk) < eps(Float16)
+            @warn "Stop because the step is lower than machine precision"
+            status = :small_step
+            break
+        end 
 
         ck = xk .+ sk
         ΔTk = -gk' * sk
         fck = obj(nlp, ck)
+        if fck == -Inf
+            status = :unbounded
+            break
+        end
 
         ρk = (fk - fck) / ΔTk
 
+
         # Recomputing if conditions on ρk not reached
         if ρk >= η2
-            σk = γ1 * σk
+            σk = max(σ_min, γ1 * σk)
 
         elseif ρk < η1
             σk = σk * γ2
@@ -72,19 +94,18 @@ function R2_mp(
             norm_gk=norm(gk)
         end
 
+
         iter += 1
         optimal = norm_gk ≤ ϵ
         tired = iter > maxiterations
 
-        elapsed_time += time() - start_time
+        elapsed_time = time() - start_time
 
         if verbose
             #infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time
             @info infoline
             infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
         end
-
-
 
         global status
 
@@ -95,9 +116,6 @@ function R2_mp(
           else
             :exception
           end
-
-
-
     end
     
     return GenericExecutionStats(
