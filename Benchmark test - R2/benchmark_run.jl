@@ -20,15 +20,12 @@ using ProfileView
 
 include("R2.jl")
 include("R2_D.M.jl")
-include("/Users/nathanallaire/Desktop/GERAD/Ipopt - Benchmark solving /problems/nlp_models/elec.jl")
 
 function run_benchmark(;type::Val{T} = Val(Float64)) where {T}
 
   # load the problems
   problems = (eval(problem)(type = Val(T)) for problem ∈ setdiff(names(OptimizationProblems.ADNLPProblems), [:ADNLPProblems]))
 
-  ϵ_abs = eps(Float16)^1/3 # done so to have the same ϵ for all the precisions.
-  ϵ_rel = eps(Float16)^1/3
 
 
   # Create a dictionary for the solver: 
@@ -42,8 +39,6 @@ function run_benchmark(;type::Val{T} = Val(Float64)) where {T}
                   η2 = 0.75,
                   γ1 = 0.33,
                   γ2 = 2.0,
-                  ϵ_abs = ϵ_abs,
-                  ϵ_rel = ϵ_rel,
                   verbose = false),
             :R2_DM =>
               nlp -> quadratic_regularization(
@@ -53,8 +48,6 @@ function run_benchmark(;type::Val{T} = Val(Float64)) where {T}
                 η_2 = 0.75,
                 γ_1 = 0.33,
                 γ_2 = 2.0,
-                ϵ_abs = ϵ_abs,
-                ϵ_rel = ϵ_rel,
                 x0=nothing,
                 maxiter = 250,
                 verbose = false,

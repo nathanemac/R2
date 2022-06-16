@@ -9,16 +9,13 @@ function R2(
             maxiterations=1000,
             η1 = 0.3,
             η2 = 0.7,
-            γ1 = 1 / 2,
+            γ1 = 0.5,
             γ2 = 2.0,
-            ϵ_abs = 1e-6,
-            ϵ_rel = 1e-6,
             verbose::Bool = false)
 
     # Initializing the variables
     type = typeof(nlp.meta.x0[1])
     x0 = copy(nlp.meta.x0)
-    x0 = convert.(type,x0)
 
     if σ_min === nothing
         σ_min = eps(type)
@@ -26,11 +23,14 @@ function R2(
         σ_min = convert(type,σ_min)
     end
 
+    ϵ_abs = (eps(type))^(1 / 3)
+    ϵ_rel = (eps(type))^(1 / 3)
+
     # Initialisation
     iter=0
     xk = copy(x0)
 
-    ρk = 0
+    ρk = type(0)
     ck = copy(xk)
     fk = obj(nlp, xk)
     gk = grad(nlp, xk)
@@ -53,14 +53,15 @@ function R2(
         infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
     end
 
+    status = nothing
     start_time = time()
     elapsed_time = 0.0
-
+    sk = type(0)
     while !(optimal | tired)
 
-        sk = convert.(type,-gk./σk)
+        sk = -gk./σk
 
-        if norm(sk) < eps(Float16)
+        if norm(sk) < eps(type)
             @warn "Stop because the step is lower than machine precision"
             status = :small_step
             break
@@ -74,7 +75,7 @@ function R2(
             break
         end
 
-        ρk = (fk - fck) / ΔTk
+        ρk = (fk - fck) / ΔTk 
 
 
         # Recomputing if conditions on ρk not reached
@@ -106,8 +107,6 @@ function R2(
             @info infoline
             infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
         end
-
-        global status
 
         status = if optimal
             :first_order

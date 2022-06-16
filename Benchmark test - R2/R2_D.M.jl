@@ -11,13 +11,13 @@ function quadratic_regularization(
   η_2 = 0.7,
   γ_1 = 2^(-1),
   γ_2 = 2.0,
-  ϵ_abs,
-  ϵ_rel,
   x0=nothing,
   maxiter = 1000,
   verbose::Bool = false,
   log::Bool = false
 )
+
+
 
   type = typeof(nlp.meta.x0[1])
   if x0 === nothing
@@ -31,6 +31,9 @@ function quadratic_regularization(
   else 
     σ_min = convert(type,σ_min)
   end
+
+  ϵ_abs = (eps(type))^(1 / 3)
+  ϵ_rel = (eps(type))^(1 / 3)
 
   # Initialization
   iter = 0
