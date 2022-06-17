@@ -46,9 +46,13 @@ function R2(
     while !(optimal | tired)
 
         ck .= xk .- gk ./ σk
+        if norm(-gk./σk) <MyEps
+            @warn "Algo stops because step is lower than machine precision"
+            status = :small_step
+            break
+          end
 
         ΔTk= -gk' * (-gk ./ σk)
-
         fck = obj(nlp, ck)
         if fck == -Inf
             status = :unbounded
