@@ -47,15 +47,8 @@ function R2(
     
     while !(optimal | tired)
 
-        # sk = -gk./σk
-        # if norm(sk) < MyEps
-        #     @warn "Algo stops because step is lower than machine precision"
-        #     status = :small_step
-        #     break
-        #   end
-
         ck .= xk .- (gk./σk)
-        ΔTk= norm_gk^2/ σk#    -gk' * sk
+        ΔTk= norm_gk^2/ σk
         fck = obj(nlp, ck)
         if fck == Inf
             status = :unbounded
@@ -104,7 +97,7 @@ function R2(
       else
         :exception
       end
-      
+
     return GenericExecutionStats(
             status,
             nlp,

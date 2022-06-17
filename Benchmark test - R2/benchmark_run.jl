@@ -17,6 +17,7 @@ using CSV
 using Plots
 using Profile
 using ProfileView
+using StochasticRounding
 
 include("R2.jl")
 include("R2_D_M.jl")
@@ -117,7 +118,7 @@ end
 
 
 
-################# STATS ON THE SOLVERS #########################
+################# PROFILE ON RTN #########################
 
 r16 = run_benchmark(type = Val(Float16))
 r32 = run_benchmark(type = Val(Float32))
@@ -162,5 +163,18 @@ CSV.write("/Users/nathanallaire/Desktop/GERAD/R2/Benchmark test - R2/stats_iter2
 
 
 
-################################# TIME PROFILE FOR QUADRUPLE PRECISION ######################################
-#TODO do this 
+################################# PROFILE FOR SR ######################################
+
+r16sr = run_benchmark(type = Val(Float16sr))
+r32sr = run_benchmark(type = Val(Float32sr))
+
+df3 = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], unknown = Int64[], mean_time = Float64[])
+push!(df3, stats_precision(r16sr[1], Float16sr))
+push!(df3, stats_precision(r16sr[1], Float32sr))
+
+df4 = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], unknown = Int64[], mean_time = Float64[])
+push!(df4, stats_precision(r32sr[2], Float16sr))
+push!(df4, stats_precision(r32sr[2], Float32sr))
+
+CSV.write("/Users/nathanallaire/Desktop/GERAD/R2/Benchmark test - R2/stats_250_R2_SR.csv", df3)
+CSV.write("/Users/nathanallaire/Desktop/GERAD/R2/Benchmark test - R2/stats_iter250_R2_DM_SR.csv", df4)

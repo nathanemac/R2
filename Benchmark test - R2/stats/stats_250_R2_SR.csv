@@ -1,0 +1,3 @@
+precision,max_iter,exception,first_order,unbounded,small_step,unknown,mean_time
+Float16sr,34,20,28,0,0,0,0.03073010928388955
+Float32sr,34,20,28,0,0,0,0.03073010928388955
