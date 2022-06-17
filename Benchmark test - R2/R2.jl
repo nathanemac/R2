@@ -56,7 +56,7 @@ function R2(
         ck .= xk .+ sk
         ΔTk= -gk' * sk
         fck = obj(nlp, ck)
-        if fck == -Inf
+        if fck == Inf
             status = :unbounded
             break
         end

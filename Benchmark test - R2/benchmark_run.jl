@@ -91,7 +91,7 @@ function stats_precision(df::DataFrame, precision::DataType)
   first_order = 0
   unbounded = 0
   small_step = 0
-  overflow = 0
+  unknown = 0
   for stat in df.status
     if stat == :max_iter
       max_iter+=1
@@ -104,7 +104,7 @@ function stats_precision(df::DataFrame, precision::DataType)
     elseif stat == small_step
       small_step +=1
     else 
-      overflow+=1
+      unknown+=1
     end
   end
 
@@ -112,7 +112,7 @@ function stats_precision(df::DataFrame, precision::DataType)
     filter!(e->e≠ Inf, df.elapsed_time)
   end
 
-  return [precision, max_iter, exception, first_order, unbounded, small_step, mean(df.elapsed_time)]
+  return [precision, max_iter, exception, first_order, unbounded, small_step, unknown, mean(df.elapsed_time)]
 end
 
 
@@ -132,7 +132,7 @@ rd64 = run_benchmark(type = Val(Double64))
 R_performance = [r16[3], r32[3], r64[3], rbigfloat[3], r128[3], rbf16[3], rd16[3], rd32[3], rd64[3]]
 
 
-df = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], mean_time = Float64[])
+df = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], unknown = Int64[], mean_time = Float64[])
 push!(df, stats_precision(r16[1], Float16))
 push!(df, stats_precision(rbf16[1], BFloat16))
 push!(df, stats_precision(rd16[1], Double16))
@@ -145,7 +145,7 @@ push!(df, stats_precision(rbigfloat[1], BigFloat))
 
 
 
-df2 = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], mean_time = Float64[])
+df2 = DataFrame(precision = DataType[], max_iter = Int64[], exception = Int64[], first_order = Int64[], unbounded = Int64[], small_step = Int64[], unknown = Int64[], mean_time = Float64[])
 push!(df2, stats_precision(r16[2], Float16))
 push!(df2, stats_precision(rbf16[2], BFloat16))
 push!(df2, stats_precision(rd16[2], Double16))
