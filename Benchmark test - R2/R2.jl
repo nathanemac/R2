@@ -25,7 +25,8 @@ function R2(
 
     ρk = T(0)
     fk = obj(nlp, xk)
-    gk = grad(nlp, xk)
+    gk = similar(xk)
+    grad!(nlp, xk, gk)
     norm_gk=norm(gk)
     σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
 
