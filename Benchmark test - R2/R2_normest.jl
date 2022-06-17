@@ -3,6 +3,7 @@
     Input: (x::Vector, f::function to minimize, maxiterations::Int, η1,η2,γ1,γ2,ϵ_abs,ϵ_rel :: Float64, verbose::Bool )
     Output: (GenericExecutionStats)
 "
+
 function R2(
     nlp::AbstractNLPModel{T, S};
     maxiterations::Int = 1000,

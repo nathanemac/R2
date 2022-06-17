@@ -19,7 +19,7 @@ using Profile
 using ProfileView
 
 include("R2.jl")
-include("R2_D.M.jl")
+include("R2_D_M.jl")
 
 function run_benchmark(;type::Val{T} = Val(Float64)) where {T}
 
