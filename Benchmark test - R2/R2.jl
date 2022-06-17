@@ -46,14 +46,15 @@ function R2(
     ck = similar(xk)
     while !(optimal | tired)
 
-        ck .= xk .- gk ./ σk
-        if norm(-gk./σk) <MyEps
+        sk = -gk./σk
+        if norm(sk) < MyEps
             @warn "Algo stops because step is lower than machine precision"
             status = :small_step
             break
           end
 
-        ΔTk= -gk' * (-gk ./ σk)
+        ck .= xk .+ sk
+        ΔTk= -gk' * sk
         fck = obj(nlp, ck)
         if fck == -Inf
             status = :unbounded
