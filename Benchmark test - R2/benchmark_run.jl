@@ -33,7 +33,6 @@ function run_benchmark(;type::Val{T} = Val(Float64)) where {T}
             :R2 => 
               nlp -> R2(
                   nlp;
-                  σ_min = nothing,
                   maxiterations=250,
                   η1 = 1e-4,
                   η2 = 0.75,

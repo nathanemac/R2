@@ -4,44 +4,30 @@
     Output: (GenericExecutionStats)
 "
 function R2(
-            nlp;
-            σ_min = nothing,
-            maxiterations=1000,
-            η1 = 0.3,
-            η2 = 0.7,
-            γ1 = 0.5,
-            γ2 = 2.0,
-            verbose::Bool = false)
+    nlp::AbstractNLPModel{T, S};
+    maxiterations::Int = 1000,
+    η1 = T(0.3),
+    η2 = T(0.7),
+    γ1 = T(1/2),
+    γ2 = 1/γ1,
+    verbose::Bool = false,
+    σ_min = eps(T),
+    kwargs...) where {T, S}
 
     # Initializing the variables
-    type = typeof(nlp.meta.x0[1])
-    x0 = copy(nlp.meta.x0)
-
-    if σ_min === nothing
-        σ_min = eps(type)
-    else 
-        σ_min = convert(type,σ_min)
-    end
-
-    ϵ_abs = (eps(type))^(1 / 3)
-    ϵ_rel = (eps(type))^(1 / 3)
+    MyEps = eps(T)
+    ϵ_abs = MyEps^(1 / 3)
+    ϵ_rel = MyEps^(1 / 3)
 
     # Initialisation
     iter=0
-    xk = copy(x0)
+    xk = copy(nlp.meta.x0)
 
-    ρk = type(0)
-    ck = copy(xk)
+    ρk = T(0)
     fk = obj(nlp, xk)
     gk = grad(nlp, xk)
     norm_gk=norm(gk)
     σk = 2^round(log2(norm(gk) + 1)) # The closest exact-computed power of 2 from gk
-
-    γ1 =  convert.(type,γ1)
-    γ2 =  convert.(type,γ2)
-    σk =  convert.(type,σk)
-
-
 
     # Stopping criterion: 
     ϵ = ϵ_abs + ϵ_rel*norm_gk
@@ -53,22 +39,16 @@ function R2(
         infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_gk σk
     end
 
-    status = nothing
+    status = :unknown
     start_time = time()
     elapsed_time = 0.0
-    sk = type(0)
+    ck = similar(xk)
     while !(optimal | tired)
 
-        sk = -gk./σk
+        ck .= xk .- gk ./ σk
 
-        if norm(sk) < eps(type)
-            @warn "Stop because the step is lower than machine precision"
-            status = :small_step
-            break
-        end 
+        ΔTk= -gk' * (-gk ./ σk)
 
-        ck = xk .+ sk
-        ΔTk = -gk' * sk
         fck = obj(nlp, ck)
         if fck == -Inf
             status = :unbounded
@@ -89,10 +69,10 @@ function R2(
 
         # Acceptance of the new candidate
         if ρk >= η1
-            xk = ck
+            xk .= ck
             fk = fck
-            gk = grad(nlp, xk)
-            norm_gk=norm(gk)
+            grad!(nlp, xk, gk)
+            norm_gk = norm(gk)
         end
 
 
