@@ -18,7 +18,7 @@ using Plots
 using Profile
 using ProfileView
 using StochasticRounding
-
+using FastFloat16s
 
 include("R2.jl")
 
@@ -43,22 +43,13 @@ end
 
 r16 = benchmark_problems(type_norm = Val(Float16), type_sr = Val(Float16sr))
 r32 = benchmark_problems(type_norm = Val(Float32), type_sr = Val(Float32sr))
-
-
-
-
-
-my_skip_prob=[:sinquad, ]
-
+rb16 = benchmark_problems(type_norm = Val(BFloat16), type_sr = Val(BFloat16sr))
+rf16 = benchmark_problems(type_norm = Val(FastFloat16), type_sr = Val(FastFloat16sr))
 
 
 
 test = (eval(problem)(type = Val(Float32)) for problem ∈ setdiff(names(OptimizationProblems.ADNLPProblems), [:ADNLPProblems, :sinquad, :NZF1, :cosine, :eg2, :fletcbv2, :fletcbv3_mod, :genhumps, :indef_mod, :noncvxu2, :noncvxun, :schmvett, :scosine, :sparsine])) # by adding the name in the second part, it skips it 
 
-my_nlp = test.f(:fletcbv3_mod)
-t = R2(my_nlp)
-
 for prob in test
-          println(get_name(prob)) 
-       
+    println(get_name(prob)) 
 end

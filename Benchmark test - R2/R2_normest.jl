@@ -4,26 +4,50 @@
     Output: (GenericExecutionStats)
 "
 
-function R2(
-    nlp::AbstractNLPModel{T, S};
-    maxiterations::Int = 1000,
-    η1 = T(0.3),
-    η2 = T(0.7),
-    γ1 = T(1/2),
-    γ2 = 1/γ1,
-    verbose::Bool = false,
-    σ_min = eps(T),
-    kwargs...) where {T, S}
+function R2(nlp::AbstractNLPModel{T, S}, 
+    kwargs_dict = Dict(kwargs...),
+    x0 = pop!(kwargs_dict, :x0, nlp.meta.x0),
+    xk, k, outdict = R2(x -> obj(nlp, x), args..., x0; kwargs_dict...), 
+    kwargs_dict...) where {T, S}
 
-    # Initializing the variables
-    MyEps = eps(T)
-    ϵ_abs = MyEps^(1 / 3)
-    ϵ_rel = MyEps^(1 / 3)
+  return GenericExecutionStats(
+    outdict[:status],
+    nlp,
+    solution = xk,
+    objective = outdict[:fk],
+    dual_feas = outdict[:norm_gk],
+    elapsed_time = outdict[:elapsed_time],
+    iter = k,
+    solver_specific = Dict(
+        :Fhist => outdict[:Fhist]
+      ),
+    )
+end
+
+
+function R2(
+    nlp::AbstractNLPModel{T, S},
+    options::ROSolverOptions,
+    x0::AbstractVector,) where {T, S}
+
+    start_time = time()
+    elapsed_time = 0.0
+    ϵ = options.ϵ
+    verbose::Bool = false
+    MaxIterations = options.MaxIterations
+    MaxTime = options.MaxTime
+
+    σmin = T(options.σmin),
+    η1 = T(options.η1),
+    η2 = T(options.η2),
+    γ1 = T(options.γ1),
+    γ2 = T(options.γ2),
+
 
     # Initialisation
     iter=0
-    xk = copy(nlp.meta.x0)
-
+    xk = copy(x0)
+    Fobj_hist = zeros(maxIter)
     ρk = T(0)
     fk = obj(nlp, xk)
     gk = similar(xk)
@@ -34,7 +58,7 @@ function R2(
     # Stopping criterion: 
     ϵ = ϵ_abs + ϵ_rel*norm_gk
     optimal = norm_gk ≤ ϵ
-    tired = iter > maxiterations
+    tired = iter > MaxIterations
 
     if verbose
         @info @sprintf "%5s  %9s  %7s  %7s " "iter" "f" "‖∇f‖" "σ"
@@ -42,21 +66,13 @@ function R2(
     end
 
     status = :unknown
-    start_time = time()
-    elapsed_time = 0.0
     ck = similar(xk)
     
     while !(optimal | tired)
 
-        # sk = -gk./σk
-        # if norm(sk) < MyEps
-        #     @warn "Algo stops because step is lower than machine precision"
-        #     status = :small_step
-        #     break
-        #   end
-
+        Fobj_hist[k] = fk
         ck .= xk .- (gk./σk)
-        ΔTk= norm_gk^2/ σk#    -gk' * sk
+        ΔTk= norm_gk^2/ σk
         fck = obj(nlp, ck)
         if fck == Inf
             status = :unbounded
@@ -65,10 +81,9 @@ function R2(
 
         ρk = (fk - fck) / ΔTk 
 
-
         # Recomputing if conditions on ρk not reached
         if ρk >= η2
-            σk = max(σ_min, γ1 * σk)
+            σk = max(σmin, γ1 * σk)
 
         elseif ρk < η1
             σk = σk * γ2
@@ -86,8 +101,7 @@ function R2(
 
         iter += 1
         optimal = norm_gk ≤ ϵ
-        tired = iter > maxiterations
-
+        tired = iter > MaxIterations | elapsed_time > MaxTime
         elapsed_time = time() - start_time
 
         if verbose
@@ -105,15 +119,16 @@ function R2(
       else
         :exception
       end
-      
-    return GenericExecutionStats(
-            status,
-            nlp,
-            solution = xk,
-            objective = fk,
-            dual_feas = norm_gk,
-            elapsed_time = elapsed_time,
-            iter = iter,
-            )
-end
 
+      outdict = Dict(
+        :Fhist => Fobj_hist[1:iter],
+        :status => status,
+        :xk => xk
+        :fk => fk,
+        :dual_feas = norm_gk,
+        :elapsed_time => elapsed_time,
+        :iter => iter
+      )
+
+    return xk, iter, outdict
+end
