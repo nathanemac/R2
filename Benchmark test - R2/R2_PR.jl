@@ -100,12 +100,11 @@ function solve!(
 
     iter += 1
     optimal = norm_∇xk ≤ ϵ
-    tired = iter > maxiterations
+    tired = iter > MaxIterations
 
     elapsed_time = time() - start_time
 
     if verbose
-        #infoline *= @sprintf "  %8.1e  %7.1e" ρk elapsed_time
         @info infoline
         infoline = @sprintf "%5d  %9.2e  %7.1e  %7.1e" iter fk norm_∇xk σk
     end
